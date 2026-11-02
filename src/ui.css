@@ -2,3 +2,4 @@
 
 #aiSettings,#libreSettings{border:0;padding:0;margin:0;min-width:0}#aiSettings[hidden],#libreSettings[hidden]{display:none}#clearLibre{margin-top:12px}
 .popup #openPdf{width:100%;margin-bottom:10px}
+.popup #toggleSubtitles{width:100%;margin-bottom:10px}.popup #toggleSubtitles[hidden]{display:none}

@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createPage, root } from './browser-helpers.mjs';
 
-async function fixture(t, file = 'options.html', settings = null) {
+async function fixture(t, file = 'options.html', settings = null, pageStatus = null) {
   const { browser, page } = await createPage();
   t.after(() => browser.close());
   await page.route('http://fixture.test/**', async route => {
@@ -12,7 +12,7 @@ async function fixture(t, file = 'options.html', settings = null) {
     try { await route.fulfill({ body: await readFile(path.join(root, name)), contentType: name.endsWith('.js') ? 'text/javascript' : name.endsWith('.css') ? 'text/css' : 'text/html' }); }
     catch { await route.fulfill({ status: 404, body: 'missing' }); }
   });
-  await page.addInitScript(({ settings }) => {
+  await page.addInitScript(({ settings, pageStatus }) => {
     window.calls = [];
     window.saved = settings || JSON.parse(localStorage.getItem('settings') || 'null') || { provider: 'ai', endpoint: 'https://api.deepseek.com/chat/completions', model: 'deepseek-flash', apiKey: '', targetLanguage: 'zh-CN' };
     window.chrome = { runtime: { sendMessage: async message => {
@@ -22,8 +22,13 @@ async function fixture(t, file = 'options.html', settings = null) {
       if (message.type === 'IT_SAVE_SETTINGS') { localStorage.setItem('settings', JSON.stringify(message.settings)); return { ok: true, config: {} }; }
       if (message.type === 'IT_TEST_CONNECTION') return { ok: true, text: '你好' };
       return { ok: true };
-    } }, tabs: { query: async () => [{ id: 4 }], sendMessage: async () => { throw new Error('no receiver'); } } };
-  }, { settings });
+    } }, tabs: { query: async () => [{ id: 4 }], sendMessage: async (_tabId, message) => {
+      if (!pageStatus) throw new Error('no receiver');
+      window.calls.push(message);
+      if (message.type === 'IT_TOGGLE_YOUTUBE_SUBTITLES') pageStatus = { ...pageStatus, captionActive: !pageStatus.captionActive, state: pageStatus.captionActive ? 'original' : 'waiting', message: '' };
+      return { ok: true, supported: true, ...pageStatus };
+    } } };
+  }, { settings, pageStatus });
   await page.goto(`http://fixture.test/${file}`);
   return page;
 }
@@ -70,6 +75,20 @@ test('popup explains missing content script and provides options', async t => {
   assert.match(await page.locator('#pageStatus').innerText(), /受限|授权/);
   await page.getByRole('button', { name: '打开设置', exact: true }).click();
   assert.equal(await page.evaluate(() => calls.some(c => c.type === 'IT_OPEN_OPTIONS')), true);
+});
+
+test('popup uses YouTube caption status and controls the existing tab without sending text', async t => {
+  const page = await fixture(t, 'popup.html', null, { isYouTube: true, captionActive: false, state: 'error', message: '此视频暂无可用字幕。' });
+  const toggle = page.getByRole('button', { name: '开启字幕翻译', exact: true });
+  await toggle.waitFor();
+  assert.match(await page.locator('#pageStatus').innerText(), /暂无可用字幕/);
+  await toggle.click();
+  await page.getByRole('button', { name: '关闭字幕翻译', exact: true }).waitFor();
+  assert.match(await page.locator('#pageStatus').innerText(), /等待 YouTube 字幕/);
+  await page.getByRole('button', { name: '关闭字幕翻译', exact: true }).click();
+  await toggle.waitFor();
+  assert.equal(await page.evaluate(() => calls.filter(call => call.type === 'IT_TOGGLE_YOUTUBE_SUBTITLES').length), 2);
+  assert.equal(await page.evaluate(() => calls.some(call => ['IT_START_SESSION', 'IT_TRANSLATE'].includes(call.type))), false);
 });
 
 test('pending connection locks controls then unlocks them on rejection', async t => {

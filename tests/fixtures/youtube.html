@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>A private video title that must never be translated</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; color: #f5f5f5; background: #0f0f0f; font: 16px system-ui; }
+  header { height: 64px; padding: 18px 36px; font-size: 22px; font-weight: 700; }
+  main { max-width: 1080px; margin: 20px auto; }
+  #movie_player { position: relative; width: 100%; height: 580px; overflow: hidden; background: linear-gradient(135deg,#071a2b,#123747); }
+  #movie_player:fullscreen { width: 100vw; height: 100vh; }
+  video { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .scene { position: absolute; inset: 52px 80px 160px; display: flex; flex-direction: column; justify-content: center; pointer-events: none; }
+  .scene small { color: #76ddcb; letter-spacing: .14em; }
+  .scene strong { font-size: 48px; line-height: 1.12; max-width: 700px; margin: 18px 0; }
+  .wave { display: flex; gap: 10px; align-items: center; margin-top: 24px; }
+  .wave i { display: block; height: 48px; width: 18px; border-radius: 5px; background: #76ddcb; opacity: .8; }
+  .wave i:nth-child(3n) { height: 86px; } .wave i:nth-child(2n) { height: 24px; }
+  .ytp-caption-window-container { position: absolute; bottom: 104px; inset-inline: 36px; text-align: center; pointer-events: none; }
+  .caption-window { display: inline-block; padding: 4px 10px; background: #000c; border-radius: 3px; font-size: 25px; line-height: 1.4; }
+  .ytp-chrome-bottom { position: absolute; bottom: 0; height: 50px; inset-inline: 18px; border-top: 3px solid #e33; display: flex; align-items: center; justify-content: space-between; }
+  .ytp-right-controls { display: flex; align-items: center; gap: 10px; }
+  button { border: 0; border-radius: 4px; padding: 8px 12px; color: white; background: #272d35; font: inherit; cursor: pointer; }
+  .ytp-subtitles-button[aria-pressed="true"] { border-bottom: 3px solid #f33; }
+  h1 { font-size: 21px; } input { width: 400px; }
+</style>
+<header>▶ YouTube · Subtitle test fixture</header>
+<main>
+  <div id="movie_player" class="html5-video-player">
+    <video></video>
+    <div class="scene"><small>LEARNING TOGETHER</small><strong>Every word opens<br>a new perspective.</strong><div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+    <div class="ytp-caption-window-container"><div class="caption-window"><span class="ytp-caption-segment">Learning a language opens new doors.</span></div></div>
+    <div class="ytp-chrome-bottom"><span>▶ &nbsp; 0:24 / 6:30</span><div class="ytp-right-controls"><button class="ytp-subtitles-button" aria-label="Subtitles" aria-pressed="true">CC</button><button class="ytp-fullscreen-button" aria-label="Fullscreen">⛶</button></div></div>
+  </div>
+  <h1>A private video title that must never be translated</h1>
+  <p id="comments">A private viewer comment outside the player.</p>
+  <input value="A private search or comment field">
+</main>
+<script>
+  document.querySelector('.ytp-subtitles-button').addEventListener('click', event => {
+    const button = event.currentTarget;
+    button.setAttribute('aria-pressed', String(button.getAttribute('aria-pressed') !== 'true'));
+  });
+  document.querySelector('.ytp-fullscreen-button').addEventListener('click', () => document.querySelector('#movie_player').requestFullscreen());
+</script>
+</html>

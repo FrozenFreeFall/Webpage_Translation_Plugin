@@ -9,6 +9,7 @@ FILES = [
     "src/translator.js", "src/free-translators.js",
     "src/libretranslate.js",
     "src/content.js", "src/content.css", "src/options.js", "src/popup.js", "src/ui.css",
+    "src/youtube.js",
     "src/pdf-entry.js", "src/pdf-model.js", "src/pdf.js", "src/pdf.css",
 ]
 

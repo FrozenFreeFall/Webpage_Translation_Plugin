@@ -3,6 +3,8 @@ import { isPdfURL } from './pdf-entry.js';
 const pageStatus = document.querySelector('#pageStatus');
 const open = document.querySelector('#openOptions');
 const openPdf = document.querySelector('#openPdf');
+const toggleSubtitles = document.querySelector('#toggleSubtitles');
+let currentTabId = null;
 let source = '';
 let openingPdf = false;
 async function openReader(url = '') {
@@ -17,6 +19,22 @@ async function openReader(url = '') {
   finally { openingPdf = false; openPdf.disabled = false; }
 }
 openPdf.addEventListener('click', () => void openReader(source));
+function describeCaptions(response) {
+  toggleSubtitles.hidden = false;
+  toggleSubtitles.textContent = response.captionActive ? '关闭字幕翻译' : '开启字幕翻译';
+  const labels = { waiting: '字幕翻译已开启，等待 YouTube 字幕。', translating: '正在翻译当前字幕。', translated: '正在显示双语字幕。', error: '字幕翻译暂不可用，请在播放器中查看提示。' };
+  pageStatus.textContent = response.message || (response.captionActive ? labels[response.state] || labels.waiting : '点击熊猫或播放器内“译”按钮，开启双语字幕。');
+}
+toggleSubtitles.addEventListener('click', async event => {
+  if (!event.isTrusted || !Number.isInteger(currentTabId)) return;
+  toggleSubtitles.disabled = true;
+  try {
+    const response = await chrome.tabs.sendMessage(currentTabId, { type: 'IT_TOGGLE_YOUTUBE_SUBTITLES' });
+    if (!response?.ok || !response.isYouTube) throw new Error();
+    describeCaptions(response);
+  } catch { document.querySelector('#status').textContent = '字幕开关未连接，请刷新 YouTube 后重试。'; }
+  finally { toggleSubtitles.disabled = false; }
+});
 open.addEventListener('click', async () => {
   open.disabled = true;
   try {
@@ -28,6 +46,7 @@ open.addEventListener('click', async () => {
 async function describeCurrentPage() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!Number.isInteger(tab?.id)) throw new Error();
+  currentTabId = tab.id;
   if (isPdfURL(tab.url)) {
     source = tab.url;
     pageStatus.textContent = '正在打开 PDF 翻译阅读器…';
@@ -42,6 +61,7 @@ async function describeCurrentPage() {
     await openReader(source);
     return;
   }
+  if (response.isYouTube) { describeCaptions(response); return; }
   const labels = { idle: '正在显示原文。点击网页侧边大熊猫开启翻译。', original: '正在显示原文。点击网页侧边大熊猫开启翻译。', translating: '正在翻译。点击网页大熊猫可取消并还原。', translated: '正在显示双语译文。点击网页大熊猫还原。', partial: '部分内容未翻译，可在网页中重试失败内容或还原。', error: '翻译未完成。请在网页中查看错误提示或打开设置检查连接。' };
   pageStatus.textContent = labels[response.state] || '页面已连接。请使用网页侧边大熊猫查看和操作翻译。';
   if (response.state === 'loading') pageStatus.textContent = labels.translating;

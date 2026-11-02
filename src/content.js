@@ -13,8 +13,10 @@
     });
   };
   let openingPdf = false;
+  const youtube = () => globalThis.__IT_YOUTUBE__;
+  const captionStatus = () => youtube()?.isSupported() ? youtube().getStatus() : null;
   const OWN = 'data-it-translation';
-  const SKIP = 'script,style,noscript,template,pre,code,input,textarea,select,option,button,nav,header,footer,iframe,canvas,svg,math,[contenteditable]:not([contenteditable="false"]),[role="textbox"],[role="navigation"],[data-it-translation],#it-translation-root';
+  const SKIP = 'script,style,noscript,template,pre,code,input,textarea,select,option,button,nav,header,footer,iframe,canvas,svg,math,[contenteditable]:not([contenteditable="false"]),[role="textbox"],[role="navigation"],[data-it-translation],#it-translation-root,#movie_player,.html5-video-player,.ytp-caption-window-container,.ytp-caption-segment,.it-youtube-host';
   const BLOCK = new Set(['ADDRESS','ARTICLE','ASIDE','BLOCKQUOTE','BODY','DD','DIV','DL','DT','FIGCAPTION','FIGURE','H1','H2','H3','H4','H5','H6','LI','MAIN','OL','P','SECTION','TABLE','TBODY','TD','TH','THEAD','TR','UL']);
   let state = 'original', generation = 0, sessionId = null, records = [], observer = null, configKey = '', cache = new WeakMap(), lastURL = location.href, disposed = false;
   let fatalError = '', notice = '';
@@ -267,12 +269,15 @@
   });
   setPetSide('right'); setPetPose('docked'); dockPet();
   function update(text = '') {
+    const caption = captionStatus();
+    if (caption) text = caption.state === 'error' ? caption.message : '';
     notice = text;
     const titles = { original: '翻译当前网页', loading: '翻译中，点击取消并还原', translated: '显示原文', partial: '显示原文', error: '重新尝试翻译' };
     if (isPdfPage()) titles.original = titles.error = '翻译当前 PDF';
-    button.title = titles[state]; button.setAttribute('aria-label', titles[state]); button.dataset.state = state;
-    status.textContent = ({ original: '译', loading: '…', translated: '原', partial: '!', error: '!' })[state];
-    message.textContent = text; panel.hidden = !text; retry.hidden = state !== 'partial';
+    const title = caption ? (caption.active ? '关闭字幕翻译' : '开启字幕翻译') : titles[state];
+    button.title = title; button.setAttribute('aria-label', title); button.dataset.state = caption ? (caption.active ? 'translated' : 'original') : state;
+    status.textContent = caption ? (caption.state === 'error' ? '!' : caption.active ? '字' : '译') : ({ original: '译', loading: '…', translated: '原', partial: '!', error: '!' })[state];
+    message.textContent = text; panel.hidden = !text; retry.hidden = Boolean(caption) || state !== 'partial';
     if (text || state === 'loading') revealPet();
     positionPanel(); armIdle();
   }
@@ -366,7 +371,8 @@
     observer?.disconnect();
     observer = new MutationObserver(mutations => {
       const relevant = mutations.filter(m => {
-        if (m.target.nodeType === 1 && m.target.closest(`[${OWN}],#it-translation-root`)) return false;
+        const element = m.target.nodeType === 1 ? m.target : m.target.parentElement;
+        if (element?.closest(`[${OWN}],#it-translation-root,.it-youtube-host,#movie_player,.html5-video-player`)) return false;
         if (m.type === 'childList' && [...m.addedNodes, ...m.removedNodes].every(node => node.nodeType === 1 && node.hasAttribute(OWN))) return false;
         return true;
       });
@@ -450,6 +456,13 @@
     try { await action(); }
     catch { if (!disposed) { state = records.some(record => record.output) ? 'partial' : 'error'; update('网页翻译未完成，请还原后重试，或刷新网页。'); } }
   }
+  async function toggleCaptions() {
+    if (!youtube()?.isSupported()) return false;
+    if (sessionId || records.length || state !== 'original') reset();
+    await youtube().toggle();
+    update();
+    return true;
+  }
   button.addEventListener('click', event => {
     if (!event.isTrusted) return;
     if (pickup) return;
@@ -461,6 +474,7 @@
       void send({ type: 'IT_OPEN_PDF_READER' }).then(result => update(result?.ok ? '已在新标签打开 PDF 翻译阅读器。' : friendly(result?.error))).finally(() => { openingPdf = false; });
       return;
     }
+    if (youtube()?.isSupported()) { void safely(toggleCaptions); return; }
     if (state === 'loading' || state === 'translated' || state === 'partial') reset();
     else { if (state === 'error') reset(); void safely(start); }
   });
@@ -478,16 +492,30 @@
   }); });
   settings.addEventListener('click', event => { if (!event.isTrusted) return; void safely(async () => { const result = await send({ type: 'IT_OPEN_OPTIONS' }); if (!result?.ok) update(friendly(result?.error)); }); });
   chrome.runtime.onMessage.addListener((payload, _sender, respond) => {
-    if (payload?.type === 'IT_PAGE_STATUS') { respond({ ok: true, state, supported: true, isPdf: isPdfPage() }); return false; }
-    if (payload?.type === 'IT_CONFIG_CHANGED') { reset(true); respond?.({ ok: true }); }
+    const pageStatus = () => {
+      const caption = captionStatus();
+      return { ok: true, state: caption ? (caption.active ? caption.state : 'original') : state, supported: true, isPdf: isPdfPage(), isYouTube: Boolean(caption), captionActive: Boolean(caption?.active), message: caption?.message || '' };
+    };
+    if (payload?.type === 'IT_PAGE_STATUS') { respond(pageStatus()); return false; }
+    if (payload?.type === 'IT_TOGGLE_YOUTUBE_SUBTITLES') {
+      if (_sender?.id !== chrome.runtime.id || !youtube()?.isSupported()) { respond({ ok: false }); return false; }
+      toggleCaptions().then(() => respond(pageStatus()), () => respond({ ok: false }));
+      return true;
+    }
+    if (payload?.type === 'IT_CONFIG_CHANGED') { youtube()?.stop(); reset(true); respond?.({ ok: true }); }
     return false;
   });
-  function routeCheck() { if (location.href !== lastURL) { lastURL = location.href; reset(true); } }
+  function routeCheck() { if (location.href !== lastURL) { lastURL = location.href; youtube()?.stop(); reset(true); } }
   let interval = setInterval(() => { if (document.visibilityState === 'visible') routeCheck(); }, 500);
   addEventListener('popstate', routeCheck); addEventListener('hashchange', routeCheck);
-  addEventListener('pagehide', () => { disposed = true; cancelPetMotion(); clearInterval(interval); reset(true); });
+  addEventListener('pagehide', () => { disposed = true; youtube()?.stop(); cancelPetMotion(); clearInterval(interval); reset(true); });
   addEventListener('pageshow', () => { if (disposed) { disposed = false; lastURL = location.href; interval = setInterval(() => { if (document.visibilityState === 'visible') routeCheck(); }, 500); dockPet(); positionPanel(); armIdle(); } });
-  Object.defineProperty(globalThis, '__IT_CONTENT__', { value: Object.freeze({ get state() { return state; } }), configurable: false });
+  youtube()?.subscribe(() => {
+    if (disposed) return;
+    if (captionStatus()?.active && (sessionId || records.length)) reset();
+    else update();
+  });
+  Object.defineProperty(globalThis, '__IT_CONTENT__', { value: Object.freeze({ get state() { const caption = captionStatus(); return caption ? (caption.active ? caption.state : 'original') : state; } }), configurable: false });
   update();
 })();
 

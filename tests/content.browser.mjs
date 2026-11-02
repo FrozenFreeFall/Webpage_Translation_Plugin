@@ -7,9 +7,20 @@ async function fixture(t, html, options = {}) {
   const { browser, page } = await createPage();
   t.after(() => browser.close());
   await page.route('http://fixture.test/**', route => route.fulfill({ contentType: 'text/html; charset=utf-8', body: html }));
-  await page.addInitScript(({ delay, partial, configured, configDelay }) => {
+  await page.addInitScript(({ delay, partial, configured, configDelay, youtube }) => {
     window.calls = []; window.listeners = []; window.active = 0; window.maxActive = 0;
     window.config = { targetLanguage: 'zh-CN', configured, revision: 1 };
+    if (youtube) {
+      window.captionActive = false; window.captionToggles = 0;
+      const subscribers = new Set();
+      const getStatus = () => ({ active: window.captionActive, state: window.captionActive ? 'translated' : 'off', message: '' });
+      window.__IT_YOUTUBE__ = {
+        isSupported: () => true, getStatus,
+        async toggle() { window.captionActive = !window.captionActive; window.captionToggles++; for (const listener of subscribers) listener(getStatus()); },
+        stop() { window.captionActive = false; for (const listener of subscribers) listener(getStatus()); },
+        subscribe(listener) { subscribers.add(listener); listener(getStatus()); return () => subscribers.delete(listener); },
+      };
+    }
     window.chrome = { runtime: {
       onMessage: { addListener(fn) { window.listeners.push(fn); } },
       async sendMessage(message) {
@@ -23,13 +34,39 @@ async function fixture(t, html, options = {}) {
         return { ok: true, translations: message.segments.filter(s => !failed.includes(s)).map(s => ({ id: s.id, text: '译文 <img src=x onerror=alert(1)> ' + s.text })), failures: failed.map(s => ({ id: s.id, error: { message: '服务暂时不可用', fatal: false } })) };
       }
     } };
-  }, { delay: options.delay || 0, partial: !!options.partial, configured: options.configured !== false, configDelay: options.configDelay || 0 });
+  }, { delay: options.delay || 0, partial: !!options.partial, configured: options.configured !== false, configDelay: options.configDelay || 0, youtube: !!options.youtube });
   await page.goto('http://fixture.test/article');
   await page.addScriptTag({ path: path.join(root, 'src/content.js') });
   await page.waitForSelector('#it-translation-root', { timeout: 2000 });
   return page;
 }
 const ball = page => page.getByRole('button', { name: /翻译当前网页|显示原文|翻译中，点击取消并还原|重新尝试翻译/ });
+
+test('YouTube panda toggles caption controller and synthetic clicks cannot enable it', async t => {
+  const page = await fixture(t, '<main><p>Video title and comments stay unsent.</p></main>', { youtube: true });
+  const pet = page.locator('#it-translation-root .ball');
+  assert.equal(await pet.getAttribute('aria-label'), '开启字幕翻译');
+  await pet.evaluate(button => button.click());
+  assert.equal(await page.evaluate(() => captionToggles), 0);
+  await pet.click();
+  assert.equal(await pet.getAttribute('aria-label'), '关闭字幕翻译');
+  assert.equal(await page.evaluate(() => captionActive), true);
+  assert.equal(await page.evaluate(() => calls.some(call => ['IT_START_SESSION', 'IT_TRANSLATE'].includes(call.type))), false);
+  const response = await page.evaluate(() => new Promise(resolve => listeners.forEach(listener => listener({ type: 'IT_PAGE_STATUS' }, {}, resolve))));
+  assert.equal(response.isYouTube, true);
+  assert.equal(response.captionActive, true);
+  await pet.click();
+  assert.equal(await page.evaluate(() => captionActive), false);
+});
+
+test('webpage translation excludes YouTube player and caption UI text', async t => {
+  const page = await fixture(t, '<main><p>An ordinary article about video.</p><div id="movie_player" class="html5-video-player"><div class="ytp-caption-window-container"><span class="ytp-caption-segment">PRIVATE_CAPTION</span></div></div><div class="it-youtube-host">PRIVATE_OVERLAY</div></main>');
+  await ball(page).click();
+  await page.waitForFunction(() => globalThis.__IT_CONTENT__.state === 'translated');
+  const submitted = await page.evaluate(() => calls.filter(call => call.type === 'IT_TRANSLATE').flatMap(call => call.segments.map(segment => segment.text)).join(' '));
+  assert.match(submitted, /ordinary article/);
+  assert.doesNotMatch(submitted, /PRIVATE_CAPTION|PRIVATE_OVERLAY/);
+});
 
 test('PDF panda routes to reader without starting webpage text translation', async t => {
   const page = await fixture(t, '<embed type="application/pdf"><p>This wrapper text must not be translated.</p>');
