@@ -1,15 +1,17 @@
-"""Package only the unpacked extension's runtime files; never collect a profile or key."""
+"""Package the extension runtime and its usage docs; never collect a profile or key."""
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = [
     "manifest.json", "options.html", "popup.html", "pdf.html", "README.md", "测试记录.md",
+    "docs/网页翻译.gif", "docs/pdf翻译.gif",
     "src/shared.js", "src/ai.js", "src/background.js",
     "src/translator.js", "src/free-translators.js",
     "src/libretranslate.js",
     "src/content.js", "src/content.css", "src/options.js", "src/popup.js", "src/ui.css",
     "src/youtube.js",
+    "src/selection.js", "src/dictionary.js",
     "src/pdf-entry.js", "src/pdf-model.js", "src/pdf.js", "src/pdf.css",
     "assets/icons/icon-16.png", "assets/icons/icon-32.png", "assets/icons/icon-48.png",
     "assets/icons/icon-128.png", "assets/icons/icon-256.png",

@@ -6,6 +6,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   libreEndpoint: '',
   libreApiKey: '',
   targetLanguage: 'zh-CN',
+  selectionEnabled: true,
 });
 
 export class TranslationError extends Error {
@@ -56,7 +57,8 @@ export function normalizeSettings(input = {}) {
     if (libreApiKey.length > 2048 || /[\r\n]/.test(libreApiKey)) throw new TranslationError('CONFIG', 'LibreTranslate 可选 API Key 格式不正确。', true);
   }
   if (!['zh-CN', 'en'].includes(value.targetLanguage)) throw new TranslationError('CONFIG', '请选择支持的目标语言。', true);
-  return { provider, endpoint, model, apiKey, libreEndpoint, libreApiKey, targetLanguage: value.targetLanguage };
+  if (typeof value.selectionEnabled !== 'boolean') throw new TranslationError('CONFIG', '划词翻译开关无效。', true);
+  return { provider, endpoint, model, apiKey, libreEndpoint, libreApiKey, targetLanguage: value.targetLanguage, selectionEnabled: value.selectionEnabled };
 }
 
 function providerOf(input) {
@@ -69,7 +71,7 @@ function providerOf(input) {
 export function publicConfig(settings, revision = '') {
   const provider = providerOf(settings);
   const configured = provider === 'ai' ? Boolean(settings.apiKey) : provider === 'libretranslate' ? Boolean(settings.libreEndpoint) : true;
-  return { configured, provider, targetLanguage: settings.targetLanguage, revision };
+  return { configured, provider, targetLanguage: settings.targetLanguage, revision, selectionEnabled: settings.selectionEnabled !== false };
 }
 
 export function errorResult(error) {

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "轻量沉浸翻译",
-  "version": "0.5.2",
-  "description": "大熊猫一键双语翻译，支持 YouTube 双语字幕、PDF 双语阅读与对照，以及谷歌、微软、自建 LibreTranslate 和自定义 AI。",
+  "version": "0.6.0",
+  "description": "熊猫一键双语翻译，支持划词与单词词典、YouTube 双语字幕、PDF 双语阅读与对照，可使用微软、谷歌、自建 LibreTranslate 或自定义 AI。",
   "minimum_chrome_version": "125",
   "icons": {
     "16": "assets/icons/icon-16.png",
@@ -27,10 +27,11 @@
   "content_scripts": [{
     "matches": ["http://*/*", "https://*/*"],
     "exclude_matches": ["https://chromewebstore.google.com/*", "https://chrome.google.com/webstore/*", "https://microsoftedge.microsoft.com/addons/*"],
-    "js": ["src/youtube.js", "src/content.js"],
+    "js": ["src/youtube.js", "src/content.js", "src/selection.js"],
     "css": ["src/content.css"],
     "run_at": "document_idle",
     "all_frames": false
   }],
+  "web_accessible_resources": [{"resources": ["assets/icons/icon-32.png"], "matches": ["http://*/*", "https://*/*"]}],
   "content_security_policy": { "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'" }
 }

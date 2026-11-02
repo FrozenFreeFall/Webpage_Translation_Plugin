@@ -21,7 +21,7 @@ test('normalizes service base URLs and never allows credentials or HTTP in endpo
 
 test('public configuration never exposes endpoint, model or key', () => {
   assert.equal(typeof shared.publicConfig, 'function');
-  assert.deepEqual(shared.publicConfig(settings, 'r1'), { configured: true, provider: 'ai', targetLanguage: 'zh-CN', revision: 'r1' });
+  assert.deepEqual(shared.publicConfig(settings, 'r1'), { configured: true, provider: 'ai', targetLanguage: 'zh-CN', revision: 'r1', selectionEnabled: true });
 });
 
 test('free services need no key or AI fields; existing settings retain their AI provider', () => {

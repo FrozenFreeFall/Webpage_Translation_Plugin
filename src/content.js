@@ -16,7 +16,7 @@
   const youtube = () => globalThis.__IT_YOUTUBE__;
   const captionStatus = () => youtube()?.isSupported() ? youtube().getStatus() : null;
   const OWN = 'data-it-translation';
-  const SKIP = 'script,style,noscript,template,pre,code,input,textarea,select,option,button,nav,header,footer,iframe,canvas,svg,math,[contenteditable]:not([contenteditable="false"]),[role="textbox"],[role="navigation"],[data-it-translation],#it-translation-root,#movie_player,.html5-video-player,.ytp-caption-window-container,.ytp-caption-segment,.it-youtube-host';
+  const SKIP = 'script,style,noscript,template,pre,code,input,textarea,select,option,button,nav,header,footer,iframe,canvas,svg,math,[contenteditable]:not([contenteditable="false"]),[role="textbox"],[role="navigation"],[data-it-translation],#it-translation-root,#it-selection-root,#movie_player,.html5-video-player,.ytp-caption-window-container,.ytp-caption-segment,.it-youtube-host';
   const BLOCK = new Set(['ADDRESS','ARTICLE','ASIDE','BLOCKQUOTE','BODY','DD','DIV','DL','DT','FIGCAPTION','FIGURE','H1','H2','H3','H4','H5','H6','LI','MAIN','OL','P','SECTION','TABLE','TBODY','TD','TH','THEAD','TR','UL']);
   let state = 'original', generation = 0, sessionId = null, records = [], observer = null, configKey = '', cache = new WeakMap(), lastURL = location.href, disposed = false;
   let fatalError = '', notice = '';

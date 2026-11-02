@@ -1,0 +1,19 @@
+Create ONE polished product UX concept screenshot for a proposed browser extension word dictionary popover. This supplements three existing sentence-translation layout explorations; do not label it option 4. Use the attached actual product settings screenshot for the light lavender-white surfaces, indigo accent #4f46e5, navy text, quiet borders and practical Chinese system typography. Use the attached panda speech-bubble logo as the brand icon faithfully. This is a calm, simple, readable browser extension, not an AI chat app.
+
+Canvas 1400x950, mostly a quiet white English technical article page, generous margins, no browser chrome. At top left of canvas title in Chinese: “单词：小词典卡”. Under it small explanatory label “选中 → 点击熊猫 → 查看释义”. Article has small eyebrow READING NOTES, title “Better images, clearer details”, subtitle and a few realistic short paragraphs, enough context but not busy. In the article visible sentence “The new renderer reproduces images with higher fidelity.” highlight only word “fidelity” with light lavender selection. A tiny 28px panda trigger appears next to selected word. Below and slightly right of selected word, show ONE compact floating white dictionary card about 340px wide, 12px radius, delicate gray border and soft shadow; nearby article text can be partially covered as in a real floating popover. The card must be main focus and have generous readable line spacing.
+
+Card content EXACT, clear Chinese typography:
+Header: tiny panda icon, subtle “单词释义”, settings gear and close X.
+Large bold “fidelity”.
+One compact line “英 /fɪˈdel.ə.ti/” then a small speaker icon button labeled “发音”.
+Small rounded neutral chip “n. 名词”.
+Two clearly separated numbered short meanings:
+“1  忠实；忠诚”
+small muted supporting line “对人、承诺或原则的忠诚”
+“2  保真度；还原程度”
+small muted supporting line “图像、声音等对原始细节的还原程度”
+Subtle horizontal divider.
+Footer left “复制释义” as a restrained button; footer right “词典来源” in muted text, no real provider logo and no claim a provider is integrated.
+No giant primary CTA, no tabs, no chat, no favorites, no history, no pronunciation autoplay control, no account, no multiple dictionary list.
+
+At bottom outside article a small Chinese annotation “句子与段落仍使用译文卡；发音默认不自动播放。” Add a discreet “设计草图 · 尚未实现” mark. Keep professional, lightweight and feasible. Do not add extra UI, device frames, decorative illustrations or dark mode.

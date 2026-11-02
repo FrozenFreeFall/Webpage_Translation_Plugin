@@ -22,7 +22,7 @@ test('LibreTranslate normalizes local HTTP, HTTPS and proxy paths without changi
 
 test('missing LibreTranslate address is unconfigured even with a key and public state is secret-free', () => {
   const config = normalizeSettings({ provider: 'libretranslate', libreApiKey: 'private-instance-key', apiKey: 'private-ai-key' });
-  assert.deepEqual(publicConfig(config, 'r1'), { configured: false, provider: 'libretranslate', targetLanguage: 'zh-CN', revision: 'r1' });
+  assert.deepEqual(publicConfig(config, 'r1'), { configured: false, provider: 'libretranslate', targetLanguage: 'zh-CN', revision: 'r1', selectionEnabled: true });
   const configured = publicConfig(normalizeSettings({ ...config, libreEndpoint: 'http://localhost:5000' }), 'r2');
   assert.equal(configured.configured, true);
   assert.doesNotMatch(JSON.stringify(configured), /private-|localhost/);

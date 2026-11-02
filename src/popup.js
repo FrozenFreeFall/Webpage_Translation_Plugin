@@ -4,9 +4,39 @@ const pageStatus = document.querySelector('#pageStatus');
 const open = document.querySelector('#openOptions');
 const openPdf = document.querySelector('#openPdf');
 const toggleSubtitles = document.querySelector('#toggleSubtitles');
+const selectionEnabled = document.querySelector('#selectionEnabled');
+let savedSelectionEnabled = true;
 let currentTabId = null;
 let source = '';
 let openingPdf = false;
+async function loadSelectionPreference() {
+  try {
+    const result = await chrome.runtime.sendMessage({ type: 'IT_GET_PUBLIC_CONFIG' });
+    if (!result?.ok || !result.config) throw new Error();
+    savedSelectionEnabled = result.config.selectionEnabled !== false;
+    selectionEnabled.checked = savedSelectionEnabled;
+    selectionEnabled.disabled = false;
+  } catch { document.querySelector('#status').textContent = '划词开关未连接，请重新打开插件后重试。'; }
+}
+selectionEnabled.addEventListener('change', async event => {
+  if (!event.isTrusted || selectionEnabled.disabled) return;
+  const enabled = selectionEnabled.checked;
+  selectionEnabled.disabled = true;
+  const status = document.querySelector('#status');
+  try {
+    const result = await chrome.runtime.sendMessage({ type: 'IT_SET_SELECTION_ENABLED', enabled });
+    if (!result?.ok) throw new Error();
+    savedSelectionEnabled = result.config?.selectionEnabled ?? enabled;
+    selectionEnabled.checked = savedSelectionEnabled;
+    status.className = 'success';
+    status.textContent = savedSelectionEnabled ? '划词翻译已开启，选中文字后点击小熊猫查询。' : '划词翻译已关闭。';
+  } catch {
+    selectionEnabled.checked = savedSelectionEnabled;
+    status.className = 'error';
+    status.textContent = '划词开关未保存，请重试。';
+  } finally { selectionEnabled.disabled = false; }
+});
+void loadSelectionPreference();
 async function openReader(url = '') {
   if (openingPdf) return;
   openingPdf = true;

@@ -2,6 +2,7 @@ const form = document.querySelector('#settingsForm');
 const status = document.querySelector('#status');
 const fields = ['provider', 'endpoint', 'model', 'apiKey', 'targetLanguage', 'libreEndpoint', 'libreApiKey'];
 const consent = document.querySelector('#consent');
+const selectionEnabled = document.querySelector('#selectionEnabled');
 let saved;
 let loading = false;
 function applyProvider() {
@@ -29,8 +30,12 @@ function applyProvider() {
     ? '开启翻译后，需翻译的网页正文会发送至你配置的 AI 服务，可能产生 API 费用。'
     : libre ? '开启翻译后，需翻译的网页正文会发送至你自行配置的 LibreTranslate 实例。请选择自己部署或信任的实例。'
     : `开启翻译后，需翻译的网页正文会发送至${service}翻译服务。`;
+  document.querySelector('#selectionDefinitionDescription').textContent = ai
+    ? '保存后，中文词典释义由此 AI 服务翻译，也可能产生 API 费用；英文原释义会保留。'
+    : libre ? '保存后，中文词典释义由此 LibreTranslate 实例翻译，英文原释义会保留。'
+    : `保存后，中文词典释义由${service}翻译服务翻译，英文原释义会保留。`;
   document.querySelector('#testDescription').textContent = '测试连接仅发送固定短文本，草稿不会保存。' + (ai ? '测试也可能产生少量 API 费用。' : '');
-  document.querySelector('#consentDescription').textContent = '我已知晓正文和固定测试文本的数据流向。' + (ai ? '我已知晓可能产生 API 费用。' : '');
+  document.querySelector('#consentDescription').textContent = '我已知晓正文、划词、发音和固定测试文本的数据流向。' + (ai ? '我已知晓可能产生 API 费用。' : '');
 }
 document.querySelector('#provider').addEventListener('change', applyProvider);
 function message(text, error = false) {
@@ -43,8 +48,10 @@ function busy(value) {
   form.setAttribute('aria-busy', String(value));
   applyProvider();
 }
-function draft() {
-  return Object.fromEntries(fields.map(name => [name, document.getElementById(name).value.trim()]));
+function draft(includePreferences = true) {
+  const value = Object.fromEntries(fields.map(name => [name, document.getElementById(name).value.trim()]));
+  if (includePreferences) value.selectionEnabled = selectionEnabled.checked;
+  return value;
 }
 async function send(type, settings) {
   const result = await chrome.runtime.sendMessage({ type, ...(settings ? { settings } : {}) });
@@ -58,7 +65,8 @@ async function send(type, settings) {
 async function action(type) {
   if (!consent.checked) { message('请先勾选确认数据流向。', true); return; }
   if (!form.reportValidity()) return;
-  const settings = draft();
+  // A connection test does not save or change the independent selection switch.
+  const settings = draft(type === 'IT_SAVE_SETTINGS');
   busy(true);
   message(type === 'IT_TEST_CONNECTION' ? (settings.provider === 'ai' ? '正在测试连接，可能产生少量 API 费用…' : '正在测试连接…') : '正在保存…');
   try {
@@ -99,6 +107,7 @@ try {
   const result = await send('IT_GET_SETTINGS');
   saved = { libreEndpoint: '', libreApiKey: '', ...result.settings, provider: result.settings.provider || 'ai' };
   for (const name of fields) document.getElementById(name).value = saved[name] || '';
+  selectionEnabled.checked = saved.selectionEnabled !== false;
   consent.checked = Boolean(saved.apiKey);
   busy(false);
 } catch { message('无法加载设置，请关闭此页后从插件重新打开。', true); }
