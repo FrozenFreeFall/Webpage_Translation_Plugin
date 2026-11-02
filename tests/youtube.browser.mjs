@@ -10,6 +10,8 @@ const source = path.join(root, 'src/youtube.js');
 const markup = readFileSync(new URL('./fixtures/youtube.html', import.meta.url), 'utf8');
 const toggle = page => page.locator('.it-youtube-host .toggle');
 const translated = page => page.locator('.it-youtube-host .translation');
+const bilingual = page => page.locator('.it-youtube-host .bilingual');
+const captionSource = page => page.locator('.it-youtube-host .source');
 
 async function fixture(t, options = {}) {
   const { browser, page } = await createPage();
@@ -66,6 +68,167 @@ async function sends(page) {
 async function releaseNext(page) {
   await page.evaluate(() => window.pending.shift()?.());
 }
+
+async function nativeAppearance(page, playerId = 'movie_player') {
+  return page.evaluate(playerId => {
+    const player = document.getElementById(playerId);
+    const properties = ['color', 'backgroundColor', 'textShadow', 'opacity', 'visibility', 'display'];
+    return ['.ytp-caption-window-container', '.caption-window', '.ytp-caption-segment'].map(selector => {
+      const element = player.querySelector(selector);
+      if (!element) return null;
+      const style = getComputedStyle(element);
+      return Object.fromEntries(properties.map(property => [property, style[property]]));
+    });
+  }, playerId);
+}
+
+async function assertUnifiedCard(page) {
+  assert.equal(await bilingual(page).count(), 1, 'one card must own both the original cue and its translation');
+  const layout = await bilingual(page).evaluate(card => {
+    const source = card.querySelector('.source');
+    const translation = card.querySelector('.translation');
+    const rect = element => {
+      const { x, y, width, height } = element.getBoundingClientRect();
+      return { x, y, width, height };
+    };
+    const style = element => {
+      const computed = getComputedStyle(element);
+      return { fontSize: computed.fontSize, textAlign: computed.textAlign, background: computed.backgroundColor };
+    };
+    const computed = getComputedStyle(card);
+    return {
+      card: rect(card), source: rect(source), translation: rect(translation),
+      sourceStyle: style(source), translationStyle: style(translation),
+      background: computed.backgroundColor, radius: parseFloat(computed.borderRadius),
+      padding: [computed.paddingTop, computed.paddingRight, computed.paddingBottom, computed.paddingLeft].map(parseFloat),
+    };
+  });
+  const { card, source, translation, sourceStyle, translationStyle } = layout;
+  assert.ok(source.height > 0 && translation.height > 0, 'both languages must render in the shared card');
+  assert.ok(source.y + source.height <= translation.y + 1, 'original cue must appear above its translation');
+  for (const line of [source, translation]) {
+    assert.ok(line.x >= card.x && line.y >= card.y && line.x + line.width <= card.x + card.width + 1 && line.y + line.height <= card.y + card.height + 1, 'the rounded card must enclose each language');
+    assert.ok(Math.abs(line.x + line.width / 2 - card.x - card.width / 2) <= 1, 'both languages must share the card center');
+  }
+  assert.equal(sourceStyle.fontSize, translationStyle.fontSize, 'both languages use the same font size');
+  assert.equal(sourceStyle.textAlign, 'center');
+  assert.equal(translationStyle.textAlign, 'center');
+  assert.ok(translation.y - source.y - source.height <= parseFloat(sourceStyle.fontSize) / 2, 'the two languages have a compact vertical gap');
+  assert.ok(layout.radius >= 6 && layout.padding.every(value => value > 0), 'one rounded, padded card surrounds the pair');
+  const color = layout.background.match(/[\d.]+/g)?.map(Number) || [];
+  assert.ok(color.length >= 3 && color.slice(0, 3).every(value => value < 70) && (color[3] ?? 1) > 0, 'the shared card supplies a dark background');
+  assert.ok([sourceStyle.background, translationStyle.background].every(color => color === 'rgba(0, 0, 0, 0)' || color === 'transparent'), 'the languages must not form two independently painted boxes');
+  const nativePaintHidden = await page.locator('.ytp-caption-segment').evaluate(segment => {
+    let opacity = 1;
+    for (let element = segment; element; element = element.parentElement) {
+      const style = getComputedStyle(element);
+      opacity *= Number(style.opacity);
+      if (style.visibility === 'hidden' || style.display === 'none') return true;
+    }
+    const style = getComputedStyle(segment);
+    const windowStyle = getComputedStyle(segment.closest('.caption-window'));
+    return opacity === 0 || (style.color === 'rgba(0, 0, 0, 0)' && style.textShadow === 'none' && windowStyle.backgroundColor === 'rgba(0, 0, 0, 0)');
+  });
+  assert.equal(nativePaintHidden, true, 'the active card must not leave a duplicate native English cue visible');
+  const playerBox = await page.locator('#movie_player').boundingBox();
+  assert.ok(card.x >= playerBox.x && card.y >= playerBox.y && card.x + card.width <= playerBox.x + playerBox.width + 1 && card.y + card.height <= playerBox.y + playerBox.height + 1, 'the paired card stays inside the player');
+}
+
+test('one bilingual card centers both languages together in ordinary and fullscreen playback with wrapped cues', async t => {
+  const page = await fixture(t);
+  await toggle(page).click();
+  await waitForTranslation(page, '学习一门语言会打开新的大门。');
+  await assertUnifiedCard(page);
+  assert.equal(await captionSource(page).innerText(), 'Learning a language opens new doors.');
+  assert.equal(await translated(page).textContent(), '学习一门语言会打开新的大门。');
+  await page.screenshot({ path: path.join(root, 'tests/artifacts/youtube-unified-card.png') });
+  await bilingual(page).screenshot({ path: path.join(root, 'tests/artifacts/youtube-unified-card-crop.png') });
+  const longCue = 'Every new language brings another way to understand the world, connect with our neighbors, and share the stories that matter to us.';
+  await setCue(page, longCue);
+  await waitForTranslation(page, '译文：' + longCue);
+  await assertUnifiedCard(page);
+  assert.ok(await captionSource(page).evaluate(node => {
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    return new Set([...range.getClientRects()].map(rect => Math.round(rect.y))).size > 1;
+  }), 'a long original cue wraps within the card rather than overflowing it');
+  await page.locator('.ytp-fullscreen-button').click();
+  await page.waitForFunction(() => document.fullscreenElement?.id === 'movie_player');
+  await assertUnifiedCard(page);
+  assert.equal(await bilingual(page).evaluate(card => document.fullscreenElement.contains(card.getRootNode().host)), true);
+});
+
+test('the unified card keeps the current growing source as literal text and sends no cloned or unrelated content', async t => {
+  const page = await fixture(t, { clock: true, holdTranslation: true });
+  const prefix = 'A clear beginning';
+  await setCue(page, prefix);
+  await toggle(page).click();
+  await page.clock.fastForward(600);
+  assert.equal((await sends(page)).length, 1);
+  await releaseNext(page);
+  await page.clock.fastForward(50);
+  assert.equal(await bilingual(page).count(), 1, 'the paired card is required before a rolling cue can update its source');
+  const growing = prefix + ' opens another door';
+  await setCue(page, growing);
+  await page.clock.fastForward(100);
+  assert.equal(await captionSource(page).textContent(), growing, 'retaining a useful prefix translation must still show the latest visible original cue');
+  assert.equal(await translated(page).textContent(), '译文：A clear beginning');
+  assert.equal(await page.locator('.ytp-caption-segment').textContent(), growing);
+  const unsafe = '<img src=x onerror=window.captionScriptExecuted=true>';
+  await setCue(page, unsafe);
+  const unsafeLanguage = 'en"><img src=x onerror=window.captionScriptExecuted=true>';
+  await page.locator('.caption-window').evaluate((node, language) => node.setAttribute('lang', language), unsafeLanguage);
+  await page.clock.fastForward(600);
+  await page.evaluate(() => window.pending.splice(0).forEach(resolve => resolve()));
+  await page.clock.fastForward(100);
+  await waitForTranslation(page, '译文：' + unsafe);
+  assert.equal(await captionSource(page).textContent(), unsafe);
+  assert.equal(await captionSource(page).getAttribute('lang'), unsafeLanguage);
+  assert.equal(await page.locator('.it-youtube-host img').count(), 0);
+  assert.equal(await page.evaluate(() => !!window.captionScriptExecuted), false);
+  assert.deepEqual((await sends(page)).flatMap(call => call.segments.map(segment => segment.text)), [prefix, unsafe], 'the card source clone and unrelated title/comment text must never become additional translation input');
+});
+
+test('native cue appearance returns when a unified card stops, clears, seeks, changes configuration, or loses its player', async t => {
+  for (const action of ['stop', 'clear', 'seek', 'configuration', 'replacement']) {
+    const page = await fixture(t, { holdTranslation: true, beforeScript: async page => {
+      await page.evaluate(() => {
+        document.querySelector('.caption-window').style.cssText = 'color: rgb(243, 233, 223); background: rgba(8, 9, 10, .78); text-shadow: 1px 1px 2px rgb(3, 4, 5);';
+        window.originalPlayer = document.querySelector('#movie_player').outerHTML;
+        window.originalSegment = document.querySelector('.ytp-caption-segment');
+      });
+    } });
+    const original = await nativeAppearance(page);
+    const nativeMarkup = await page.locator('.ytp-caption-window-container').innerHTML();
+    await toggle(page).click();
+    await page.waitForFunction(() => window.pending.length === 1);
+    assert.deepEqual(await nativeAppearance(page), original, `${action}: native captions stay visible until a translated pair is ready`);
+    await releaseNext(page);
+    await waitForTranslation(page, '学习一门语言会打开新的大门。');
+    assert.equal(await bilingual(page).count(), 1, `${action}: the card must own the pair while active`);
+    assert.equal(await page.locator('.ytp-caption-window-container').innerHTML(), nativeMarkup, `${action}: enabling must preserve native cue markup`);
+    if (action === 'stop') await toggle(page).click();
+    if (action === 'clear') await setCue(page, '');
+    if (action === 'seek') await page.evaluate(() => document.querySelector('video').dispatchEvent(new Event('seeking')));
+    if (action === 'configuration') await page.evaluate(() => {
+      window.config.revision++;
+      window.listeners.forEach(listener => listener({ type: 'IT_CONFIG_CHANGED' }, {}, () => {}));
+    });
+    if (action === 'replacement') await page.evaluate(() => {
+      const retired = document.querySelector('#movie_player');
+      retired.insertAdjacentHTML('beforebegin', window.originalPlayer);
+      retired.id = 'retired_player';
+      document.body.append(retired);
+    });
+    await page.waitForFunction(() => [...document.querySelectorAll('.it-youtube-host')].every(host => !host.shadowRoot.querySelector('.translation') || host.shadowRoot.querySelector('.translation').hidden));
+    assert.equal(await bilingual(page).isVisible(), false, `${action}: neither language may remain in a stale card`);
+    assert.equal(await page.evaluate(() => window.originalSegment.textContent), 'Learning a language opens new doors.', `${action}: the native source text remains intact`);
+    if (action === 'clear') assert.deepEqual((await nativeAppearance(page))[0], original[0], 'clearing removes the native-container visual override');
+    else {
+      assert.deepEqual(await nativeAppearance(page, action === 'replacement' ? 'retired_player' : 'movie_player'), original, `${action}: the original native caption styling is restored exactly`);
+    }
+  }
+});
 
 test('YouTube caption toggle is player-local and sends no source text before a trusted click', async t => {
   const page = await fixture(t);

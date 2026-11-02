@@ -5,10 +5,12 @@
   if (globalThis.__IT_YOUTUBE__ || window.top !== window || !/^https?:$/.test(location.protocol) || !['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(location.hostname)) return;
 
   const CAPTIONS = '.ytp-caption-segment';
-  const CAPTION_UI = '.ytp-caption-segment,.caption-window,.caption-window-container,.ytp-subtitles-button';
+  const CAPTION_UI = '.ytp-caption-segment,.caption-window,.caption-window-container,.ytp-caption-window-container,.ytp-subtitles-button';
   const listeners = new Set(), cache = new Map();
   let active = false, state = 'off', message = '', disposed = false;
-  let player = null, host = null, toggleButton = null, translation = null, statusBox = null, statusMessage = null;
+  let player = null, host = null, toggleButton = null, bilingual = null, source = null, translation = null, statusBox = null, statusMessage = null;
+  const nativeMasks = new Map(), nativeMaskAttribute = 'data-it-youtube-caption-mask', nativeMaskToken = crypto.randomUUID();
+  let nativeMaskStyle = null;
   let playerObserver = null, resizeObserver = null, video = null;
   let activation = 0, generation = 0, cueVersion = 0, config = null, sessionId = null, blocked = false, nativeCCOwner = null;
   let currentCue = '', currentLanguage = '', observedCue = '', observedLanguage = '', displayedItem = null, queued = null, running = false, seeking = false, ccDisabled = false;
@@ -18,6 +20,7 @@
   function getStatus() { return { active, state, message }; }
   function update(nextState = state, nextMessage = '') {
     state = nextState; message = nextMessage;
+    if (state === 'error') clearTranslation();
     if (toggleButton) {
       toggleButton.setAttribute('aria-label', active ? '关闭字幕翻译' : '开启字幕翻译');
       toggleButton.setAttribute('aria-pressed', String(active));
@@ -42,8 +45,44 @@
   }
   function clearTranslation() {
     displayedItem = null;
-    if (!translation) return;
-    translation.hidden = true; translation.textContent = '';
+    restoreNativeCaptions();
+    if (bilingual) bilingual.hidden = true;
+    if (source) { source.textContent = ''; source.removeAttribute('lang'); }
+    if (translation) { translation.hidden = true; translation.textContent = ''; }
+  }
+  function restoreNativeCaptions() {
+    nativeMaskStyle?.remove(); nativeMaskStyle = null;
+    for (const [element, previous] of nativeMasks) {
+      if (element.getAttribute(nativeMaskAttribute) !== nativeMaskToken) continue;
+      if (previous === null) element.removeAttribute(nativeMaskAttribute);
+      else element.setAttribute(nativeMaskAttribute, previous);
+    }
+    nativeMasks.clear();
+  }
+  function maskNativeCaptions(segments) {
+    const roots = new Set(segments.map(segment => segment.closest('.ytp-caption-window-container,.caption-window-container') || segment.closest('.caption-window') || segment));
+    for (const [element, previous] of nativeMasks) {
+      if (roots.has(element)) continue;
+      if (element.getAttribute(nativeMaskAttribute) === nativeMaskToken) {
+        if (previous === null) element.removeAttribute(nativeMaskAttribute);
+        else element.setAttribute(nativeMaskAttribute, previous);
+      }
+      nativeMasks.delete(element);
+    }
+    if (!nativeMaskStyle?.isConnected) {
+      nativeMaskStyle = document.createElement('style');
+      // Mask only owned native caption roots. Their text, dimensions, hidden
+      // state and inline styles remain available to YouTube and readCue(). A
+      // bare segment needs transparent paint instead of opacity, which the
+      // visibility check uses to reject genuinely hidden native source text.
+      const selector = `[${nativeMaskAttribute}="${nativeMaskToken}"]`;
+      nativeMaskStyle.textContent = `${selector}:not(.ytp-caption-segment){opacity:0!important;transition:none!important}${selector}.ytp-caption-segment,${selector}.ytp-caption-segment *{color:transparent!important;-webkit-text-fill-color:transparent!important;-webkit-text-stroke-color:transparent!important;text-shadow:none!important;background:transparent!important;box-shadow:none!important}`;
+      player.append(nativeMaskStyle);
+    }
+    for (const element of roots) {
+      if (!nativeMasks.has(element)) nativeMasks.set(element, element.getAttribute(nativeMaskAttribute));
+      if (element.getAttribute(nativeMaskAttribute) !== nativeMaskToken) element.setAttribute(nativeMaskAttribute, nativeMaskToken);
+    }
   }
   function invalidate() {
     generation++; cueVersion++; queued = null; currentCue = ''; currentLanguage = ''; observedCue = ''; observedLanguage = '';
@@ -83,14 +122,20 @@
     };
   }
   function positionTranslation() {
-    if (!player || !translation || translation.hidden) return;
+    if (!player || !bilingual || bilingual.hidden || !translation || translation.hidden) return;
     const bounds = player.getBoundingClientRect();
     if (!bounds.width || !bounds.height) return;
     const segments = Array.from(player.querySelectorAll(CAPTIONS)).filter(visible);
-    const nativeBottom = segments.length ? Math.max(...segments.map(segment => segment.getBoundingClientRect().bottom)) - bounds.top : bounds.height - 90;
-    // Leave native caption layout untouched. The additional line follows its
-    // current position, including YouTube's dragged captions and fullscreen.
-    translation.style.top = `${Math.max(8, Math.min(nativeBottom + 5, bounds.height - translation.offsetHeight - 8))}px`;
+    source.textContent = segments.map(segment => segment.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean).join(' ');
+    source.lang = segments[0]?.closest('[lang]')?.getAttribute('lang') || '';
+    maskNativeCaptions(segments);
+    const nativeTop = segments.length ? Math.min(...segments.map(segment => segment.getBoundingClientRect().top)) - bounds.top : bounds.height - 140;
+    const controls = player.querySelector('.ytp-chrome-bottom')?.getBoundingClientRect();
+    const bottom = Math.min(bounds.height - 12, controls?.height && controls.top > bounds.top ? controls.top - bounds.top - 12 : bounds.height - 56);
+    bilingual.style.maxHeight = `${Math.max(0, bottom - 8)}px`;
+    // Anchor the whole shared card at the native cue's top, including dragged
+    // captions, and lift it only as needed to clear the player's controls.
+    bilingual.style.top = `${Math.max(8, Math.min(nativeTop, bottom - bilingual.offsetHeight))}px`;
   }
   function remember(key, text) {
     cache.delete(key); cache.set(key, text);
@@ -120,6 +165,7 @@
     if (!current(item)) return;
     displayedItem = item;
     translation.textContent = text; translation.lang = config?.targetLanguage || 'zh-CN'; translation.hidden = false;
+    bilingual.hidden = false;
     positionTranslation(); update('translated');
   }
   function configured(value) { return value?.configured === true; }
@@ -218,6 +264,7 @@
     const cue = readCue();
     trackCue(cue);
     if (displayedItem && !current(displayedItem)) clearTranslation();
+    else if (displayedItem) positionTranslation();
     cueTimer = setTimeout(capture, 300);
     if (!maxCueTimer) maxCueTimer = setTimeout(capture, 1000);
   }
@@ -254,10 +301,11 @@
     if (video) { video.addEventListener('seeking', onSeeking); video.addEventListener('seeked', onSeeked); }
   }
   function detachPlayer() {
+    clearTranslation();
     playerObserver?.disconnect(); resizeObserver?.disconnect(); playerObserver = resizeObserver = null;
     player?.removeEventListener('click', onNativeCCClick, true); nativeCCOwner = null;
     if (video) { video.removeEventListener('seeking', onSeeking); video.removeEventListener('seeked', onSeeked); video = null; }
-    host?.remove(); host = toggleButton = translation = statusBox = statusMessage = null; player = null;
+    host?.remove(); host = toggleButton = bilingual = source = translation = statusBox = statusMessage = null; player = null;
   }
   function attachPlayer(next) {
     const ownership = nativeCCOwner?.player === next && nativeCCOwner.button === next.querySelector('.ytp-subtitles-button') && nativeCCOwner.url === location.href ? nativeCCOwner : null;
@@ -270,18 +318,22 @@
       *{box-sizing:border-box}button{font:inherit;cursor:pointer;pointer-events:auto}button:focus-visible{outline:3px solid #ffd975;outline-offset:3px}[hidden]{display:none!important}
       .toggle{position:absolute;right:14px;top:14px;display:grid;place-items:center;width:36px;height:32px;padding:0;border:1px solid #ffffff75;border-radius:7px;background:#101820c9;color:#fff;font-size:17px;font-weight:650;box-shadow:0 2px 8px #0004}
       .toggle[aria-pressed=true]{background:#e7f4e7;color:#174b26;border-color:#b7d7b8}.toggle[data-state=translating]{border-color:#ffd975}
-      .translation{position:absolute;left:50%;transform:translateX(-50%);width:max-content;max-width:92%;padding:3px 10px;border-radius:4px;background:#000b;color:#fff;text-align:center;white-space:pre-wrap;overflow-wrap:anywhere;font-size:clamp(17px,2.2vw,30px);line-height:1.35;text-shadow:0 1px 2px #000;pointer-events:none}
+      .bilingual{position:absolute;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:5px;width:max-content;max-width:calc(100% - 32px);padding:12px 24px;border-radius:20px;background:rgba(8,9,10,.9);color:#fff;text-align:center;font-size:clamp(18px,2.2vw,30px);font-weight:400;line-height:1.35;text-shadow:0 1px 2px #0008;overflow:hidden;pointer-events:none}
+      .source,.translation{min-width:0;min-height:0;margin:0;padding:0;background:none;color:inherit;font:inherit;white-space:pre-wrap;overflow-wrap:anywhere;overflow:hidden}
       .status{position:absolute;right:14px;top:54px;max-width:min(360px,calc(100% - 28px));padding:10px 12px;border:1px solid #ffffff45;border-radius:7px;background:#101820ed;color:#fff;font-size:13px;pointer-events:auto}.message{margin:0 0 8px;white-space:normal}.actions{display:flex;gap:8px}.actions button{padding:3px 9px;border:1px solid #ffffff80;border-radius:4px;background:#fff1;color:#fff}
-      @media(max-width:640px){.translation{font-size:18px}.toggle{top:10px;right:10px}}
+      @media(max-width:640px){.bilingual{max-width:calc(100% - 20px);padding:12px 18px;font-size:18px}.toggle{top:10px;right:10px}}
     `;
     toggleButton = document.createElement('button'); toggleButton.className = 'toggle'; toggleButton.type = 'button'; toggleButton.textContent = '译';
+    bilingual = document.createElement('div'); bilingual.className = 'bilingual'; bilingual.hidden = true; bilingual.setAttribute('aria-live', 'off');
+    source = document.createElement('div'); source.className = 'source'; source.setAttribute('aria-hidden', 'true');
     translation = document.createElement('div'); translation.className = 'translation'; translation.hidden = true; translation.setAttribute('aria-live', 'off');
+    bilingual.append(source, translation);
     statusBox = document.createElement('div'); statusBox.className = 'status'; statusBox.hidden = true; statusBox.setAttribute('role', 'status');
     statusMessage = document.createElement('p'); statusMessage.className = 'message';
     const actions = document.createElement('div'); actions.className = 'actions';
     const retry = document.createElement('button'); retry.className = 'retry'; retry.type = 'button'; retry.textContent = '重试';
     const settings = document.createElement('button'); settings.className = 'settings'; settings.type = 'button'; settings.textContent = '设置';
-    actions.append(retry, settings); statusBox.append(statusMessage, actions); shadow.append(style, toggleButton, translation, statusBox); player.append(host);
+    actions.append(retry, settings); statusBox.append(statusMessage, actions); shadow.append(style, toggleButton, bilingual, statusBox); player.append(host);
     for (const control of [toggleButton, retry, settings]) {
       control.addEventListener('keydown', event => event.stopPropagation());
       control.addEventListener('keyup', event => event.stopPropagation());

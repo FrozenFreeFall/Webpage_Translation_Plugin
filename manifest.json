@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "轻量沉浸翻译",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "大熊猫一键双语翻译，支持 YouTube 双语字幕、PDF 双语阅读与对照，以及谷歌、微软、自建 LibreTranslate 和自定义 AI。",
   "minimum_chrome_version": "125",
   "permissions": ["storage", "activeTab"],
