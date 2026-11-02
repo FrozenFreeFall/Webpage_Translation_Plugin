@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="轻量沉浸翻译隐私政策：说明网页、划词、PDF 和 YouTube 字幕翻译涉及的数据、本地存储、第三方服务及您的控制方式。">
+  <meta name="color-scheme" content="light">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <title>隐私政策 · 轻量沉浸翻译</title>
+  <style>
+    :root { color-scheme: light; --ink: #23342e; --muted: #596a62; --accent: #27634b; --line: #dce5df; --paper: #fff; --wash: #f4f7f3; }
+    * { box-sizing: border-box; }
+    html { scroll-padding-top: 24px; }
+    body { margin: 0; background: var(--wash); color: var(--ink); font: 16px/1.85 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; overflow-wrap: anywhere; }
+    a { color: var(--accent); text-underline-offset: 4px; }
+    a:hover { text-decoration-thickness: 2px; }
+    a:focus-visible { outline: 3px solid #b67612; outline-offset: 4px; border-radius: 2px; }
+    .page { max-width: 1000px; margin: 48px auto; padding: 48px 64px; background: var(--paper); border: 1px solid var(--line); border-radius: 20px; }
+    .brand { margin: 0 0 12px; color: var(--accent); font-weight: 650; letter-spacing: .08em; }
+    h1 { margin: 0 0 14px; font-size: clamp(30px, 5vw, 42px); line-height: 1.3; letter-spacing: -.02em; }
+    .meta { display: flex; flex-wrap: wrap; gap: 4px 24px; color: var(--muted); font-size: 14px; }
+    .intro { margin: 26px 0 0; }
+    .summary { margin: 28px 0; padding: 20px 24px; border-left: 4px solid var(--accent); border-radius: 0 10px 10px 0; background: #f0f6f1; }
+    .summary p { margin: 0; }
+    .summary p + p { margin-top: 10px; }
+    nav { padding: 20px 0 24px; border-bottom: 1px solid var(--line); }
+    nav ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 32px; margin: 10px 0 0; padding-left: 24px; font-size: 14px; }
+    nav li + li { margin-top: 0; }
+    h2 { margin: 38px 0 12px; font-size: 22px; line-height: 1.5; }
+    h3 { margin: 22px 0 8px; font-size: 17px; }
+    p { margin: 12px 0; }
+    ul, ol { padding-left: 24px; }
+    li + li { margin-top: 8px; }
+    .table-wrap { margin: 18px 0; overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.75; }
+    caption { padding: 12px 16px; text-align: left; font-weight: 650; background: #f6f8f5; border-bottom: 1px solid var(--line); }
+    th, td { min-width: 125px; padding: 14px 16px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+    th { background: #fbfcfa; font-weight: 650; }
+    tr:last-child td { border-bottom: 0; }
+    code { font: .9em/1.6 ui-monospace, Consolas, monospace; }
+    .note { color: var(--muted); font-size: 14px; }
+    footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+    @media (max-width: 700px) {
+      .page { margin: 0; padding: 32px 22px; border: 0; border-radius: 0; }
+      nav ol { grid-template-columns: 1fr; }
+      .summary { padding: 16px 18px; }
+      th, td { min-width: 140px; padding: 12px; }
+    }
+    @media print {
+      body { background: #fff; font-size: 11pt; }
+      .page { max-width: none; margin: 0; padding: 0; border: 0; }
+      nav { display: none; }
+      h2, h3 { break-after: avoid; }
+      tr, .summary { break-inside: avoid; }
+      a { color: inherit; }
+      .table-wrap { overflow: visible; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page" id="top">
+    <header>
+      <p class="brand">轻量沉浸翻译</p>
+      <h1>隐私政策</h1>
+      <div class="meta">
+        <span>生效及更新日期：<time datetime="2026-11-02">2026 年 11 月 2 日</time></span>
+        <span>适用扩展版本：0.6.0</span>
+      </div>
+      <p class="intro">本政策说明“轻量沉浸翻译”（下称“本扩展”）在提供网页双语翻译、划词翻译与词典、PDF 双语阅读和 YouTube 双语字幕时，如何访问、使用、存储及传输数据。</p>
+    </header>
+
+    <aside class="summary" aria-label="数据处理概览">
+      <p><strong>设置保存在本机；主动翻译时，相关文本会发送至您选择的服务。</strong></p>
+      <p>本扩展没有用于汇集翻译内容的开发者后台，不要求注册本扩展账号，不植入广告或行为分析 SDK，不出售用户数据。第三方翻译、词典、音频及文档来源服务仍会接收到完成相应请求所需的数据。</p>
+    </aside>
+
+    <nav aria-label="隐私政策目录">
+      <strong>目录</strong>
+      <ol>
+        <li><a href="#scope">适用范围与处理目的</a></li>
+        <li><a href="#local">本地存储的数据</a></li>
+        <li><a href="#features">各功能处理的数据</a></li>
+        <li><a href="#providers">第三方接收方</a></li>
+        <li><a href="#permissions">权限用途</a></li>
+        <li><a href="#retention">数据留存与安全</a></li>
+        <li><a href="#controls">您的选择与删除方式</a></li>
+        <li><a href="#limited-use">数据使用限制</a></li>
+        <li><a href="#changes">政策变更</a></li>
+        <li><a href="#contact">联系维护者</a></li>
+      </ol>
+    </nav>
+
+    <section id="scope" aria-labelledby="scope-title">
+      <h2 id="scope-title">1. 适用范围与处理目的</h2>
+      <p>本政策适用于本扩展自身的数据处理。我们仅为提供用户主动使用的翻译、查词、发音及阅读功能访问必要数据。第三方服务对其接收到的数据的处理，以及托管本政策页面的平台对访问日志的处理，受相应服务方的政策约束。</p>
+      <p>本扩展不通过浏览历史 API 建立访问记录，不读取浏览器 Cookie 作为翻译凭据，也不为广告、画像或跨站追踪收集浏览活动。</p>
+    </section>
+
+    <section id="local" aria-labelledby="local-title">
+      <h2 id="local-title">2. 本地存储的数据</h2>
+      <p>本扩展使用浏览器的 <code>chrome.storage.local</code> 保存以下配置，以便在重启浏览器后继续使用：</p>
+      <ul>
+        <li>所选翻译服务、目标语言和划词翻译开关。</li>
+        <li>您填写的 AI 服务地址、模型名称、API Key，以及自建 LibreTranslate 地址和可选 API Key。</li>
+        <li>用于识别设置变化的配置版本标识。</li>
+      </ul>
+      <p>这些配置不通过本扩展的 Chrome 同步存储上传。API Key 仅在调用其对应的已配置服务时发送给该服务；不会因选择微软或谷歌翻译而把已保存的 AI Key 一并发送。本扩展限制普通网页内容脚本直接读取上述本地配置。</p>
+    </section>
+
+    <section id="features" aria-labelledby="features-title">
+      <h2 id="features-title">3. 各功能处理的数据</h2>
+      <h3>网页双语翻译</h3>
+      <p>本扩展在普通 HTTP/HTTPS 网页显示翻译入口。您主动开启网页翻译后，扩展在本地提取页面中符合条件的文字段落，将待翻译文本发送至当前所选翻译服务，并把译文显示在原文附近。未开启翻译时，不向翻译服务发送网页正文；还原或取消操作会停止后续任务，但不能撤回已发出的请求。</p>
+      <h3>划词翻译与词典发音</h3>
+      <p>选中文字本身不会发起翻译或查词。点击选区旁的熊猫按钮后，句子或段落仅发送所选文本；英文单词发送至 Free Dictionary API 查询。需要中文义项时，词典返回的英文释义会发送至当前所选翻译服务。</p>
+      <p>只有主动点击词典发音按钮时，扩展才请求词典提供且在允许来源内的音频。手动选择“本机朗读”时，扩展仅选用浏览器标记为本机的英语声音。本扩展不保存查词历史。</p>
+      <h3>PDF 双语阅读</h3>
+      <p>您选择的本地 PDF 在浏览器内解析；通过在线地址打开 PDF 时，浏览器会从该地址获取文件。点击“翻译当前页”后，当前页提取出的待翻译文字会发送至所选翻译服务，不会为翻译而上传整个 PDF 文件。打开加密 PDF 时输入的文档密码仅用于本地解析，不随翻译请求提交。</p>
+      <h3>YouTube 双语字幕</h3>
+      <p>您主动开启字幕翻译后，扩展读取当前显示的字幕文字并发送至所选翻译服务，以显示双语字幕。本扩展不为该功能上传视频或音频，也不进行语音识别。</p>
+      <h3>服务连接测试与请求范围</h3>
+      <p>设置页的“测试连接”向您正在测试的服务发送固定短文本，不读取当前网页正文。翻译和词典接口请求不附带网页 Cookie、表单字段、整页 HTML 或当前网页地址作为额外上下文；文本本身可能含有您所选择或页面正文中已有的个人信息。</p>
+    </section>
+
+    <section id="providers" aria-labelledby="providers-title">
+      <h2 id="providers-title">4. 第三方接收方</h2>
+      <p>网络请求由浏览器直接发送至以下服务。本扩展不会在翻译失败时自动切换到其他翻译服务；请依据您的选择及实际使用的功能判断接收方。</p>
+      <div class="table-wrap" role="region" aria-label="第三方服务数据表，可横向滚动" tabindex="0">
+        <table>
+          <caption>服务、接收的数据及触发条件</caption>
+          <thead><tr><th scope="col">服务 / 地址</th><th scope="col">接收的数据</th><th scope="col">何时发送</th></tr></thead>
+          <tbody>
+            <tr><td>微软翻译<br><code>edge.microsoft.com</code></td><td>待翻译文本、目标语言。</td><td>选择微软引擎并主动翻译或测试连接时。</td></tr>
+            <tr><td>谷歌翻译<br><code>translate.googleapis.com</code></td><td>待翻译文本、目标语言。</td><td>选择谷歌引擎并主动翻译或测试连接时。</td></tr>
+            <tr><td>自定义 AI 服务<br>您配置的服务地址；默认预置 <code>api.deepseek.com</code></td><td>待翻译文本、翻译指令、模型名称、目标语言及鉴权所需的 API Key。</td><td>选择 AI 引擎并主动翻译或测试连接时。</td></tr>
+            <tr><td>自建 LibreTranslate<br>您配置的实例地址</td><td>待翻译文本、语言参数，以及您填写的可选 API Key。</td><td>选择 LibreTranslate 并主动翻译或测试连接时。</td></tr>
+            <tr><td>Free Dictionary API<br><code>api.dictionaryapi.dev</code></td><td>主动查询的英文单词。</td><td>主动点击单词查询时。</td></tr>
+            <tr><td>词典音频来源<br><code>api.dictionaryapi.dev</code><br><code>ssl.gstatic.com</code><br><code>upload.wikimedia.org</code></td><td>所请求的发音音频地址，其中可能包含单词或音频标识。</td><td>主动点击发音，且词典返回的音频地址属于允许来源时。</td></tr>
+            <tr><td>在线 PDF 所在的网站</td><td>您打开的 PDF 地址及获取文件所需的网络请求。</td><td>通过在线地址打开 PDF 时。</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>上述接收方及其网络基础设施也会接收到 IP 地址、请求时间和必要的网络请求信息。第三方可能记录请求、在其服务器所在地区处理数据，并按其自身政策保留数据；本扩展无法控制这些服务的日志、留存期限或后续处理。自定义服务的实际接收方以您填写的地址为准。</p>
+      <p>第三方政策参考：<a href="https://privacy.microsoft.com/zh-cn/privacystatement" rel="noreferrer">Microsoft 隐私声明</a>、<a href="https://policies.google.com/privacy?hl=zh-CN" rel="noreferrer">Google 隐私权政策</a>。使用自定义 AI、LibreTranslate、词典、音频或文档来源服务前，请查看实际服务运营者提供的隐私说明。</p>
+    </section>
+
+    <section id="permissions" aria-labelledby="permissions-title">
+      <h2 id="permissions-title">5. 权限用途</h2>
+      <ul>
+        <li><strong><code>storage</code>：</strong>在本机保存第 2 节列出的设置与服务凭据。</li>
+        <li><strong><code>activeTab</code>：</strong>在您打开扩展工具栏弹窗时访问当前活动标签页信息，识别当前 PDF 地址，并配合当前页面的状态显示及字幕操作。</li>
+        <li><strong>HTTP/HTTPS 主机访问权限：</strong>在不同网站显示翻译和划词入口，按用户操作读取待翻译内容、显示译文，以及连接翻译、词典、发音、在线 PDF 和用户自定义服务。自定义服务与文档地址并非固定域名，因此权限覆盖普通 HTTP/HTTPS 网站。</li>
+      </ul>
+      <p>这些权限仅用于上述功能。本扩展的可执行 JavaScript 和 PDF.js 所需的 WebAssembly 等资源随安装包提供，不从远程服务器下载并执行更新代码；在线翻译响应按数据处理。</p>
+    </section>
+
+    <section id="retention" aria-labelledby="retention-title">
+      <h2 id="retention-title">6. 数据留存与安全</h2>
+      <p>本扩展不将网页原文、译文、字幕、PDF 文本或查词记录写入持久化历史库。处理任务期间，相关内容可能暂存在页面或扩展后台内存中，用于显示结果、缓存当前结果或取消任务；关闭相关页面、重载扩展或相应运行环境释放时，这些临时数据随之释放。浏览器或第三方服务自身的缓存及日志由其管理。</p>
+      <p>本地设置会保留至您修改、清除扩展数据或卸载扩展。API Key 存储在浏览器本地扩展存储中，本扩展未对其提供额外的应用层加密。</p>
+      <p>内置微软、谷歌、词典与音频接口使用 HTTPS，自定义 AI 地址要求 HTTPS。当前版本允许用户为 LibreTranslate 配置 HTTP 或 HTTPS，也允许通过 HTTP 地址打开在线 PDF；HTTP 请求不提供传输加密。请为远程自建服务和在线文档选择可信的 HTTPS 地址，并只向所选服务提交您有权处理的内容。</p>
+    </section>
+
+    <section id="controls" aria-labelledby="controls-title">
+      <h2 id="controls-title">7. 您的选择与删除方式</h2>
+      <ul>
+        <li><strong>控制发送：</strong>按需开启网页、划词、PDF 或字幕翻译；关闭划词开关或取消任务可停止后续请求。</li>
+        <li><strong>选择接收方：</strong>在设置页选择翻译引擎并查看服务地址；自建服务的数据处理由您选择的实例运营者负责。</li>
+        <li><strong>清除配置：</strong>在设置页点击“清除 AI 密钥”或“清除 LibreTranslate 密钥”可删除对应的已保存密钥；也可清空相应 API Key 输入后保存。清除扩展本地数据或卸载扩展可删除全部本地配置。原服务商签发的密钥如需失效，请在该服务商处撤销。</li>
+        <li><strong>限制网页访问：</strong>在 Chrome 的扩展程序管理页调整本扩展的网站访问权限，或停用、卸载本扩展；限制权限可能使相应翻译功能不可用。</li>
+        <li><strong>处理第三方留存：</strong>如需查询或删除已提交给第三方服务的数据，请联系实际服务运营者；本地删除无法撤回已经完成的网络请求。</li>
+      </ul>
+    </section>
+
+    <section id="limited-use" aria-labelledby="limited-use-title">
+      <h2 id="limited-use-title">8. 数据使用限制</h2>
+      <p>本扩展访问、使用和传输用户数据，仅限于提供本政策所述的翻译与阅读功能。我们不出售用户数据，不将其用于个性化广告、与核心功能无关的画像、数据经纪业务、信用评估或贷款用途。</p>
+      <p>本扩展对通过 Google API 接收的信息的使用将遵守 Chrome 网上应用店用户数据政策，包括“有限使用”（Limited Use）要求。</p>
+    </section>
+
+    <section id="changes" aria-labelledby="changes-title">
+      <h2 id="changes-title">9. 政策变更</h2>
+      <p>功能或数据处理方式发生变化时，我们会更新本政策及页面顶部日期。如果变更涉及新增数据用途或接收方，我们会按适用要求更新扩展内说明，并在需要时取得用户同意。请以与您正在使用的扩展版本相匹配的说明为准。</p>
+    </section>
+
+    <section id="contact" aria-labelledby="contact-title">
+      <h2 id="contact-title">10. 联系维护者</h2>
+      <p>如对本政策或本扩展的数据处理有疑问，请通过以下项目入口联系维护者：</p>
+      <ul>
+        <li>联系邮箱：<a href="mailto:356752238@qq.com">356752238@qq.com</a></li>
+        <li><a href="https://github.com/FrozenFreeFall/Webpage_Translation_Plugin" rel="noreferrer">GitHub 项目仓库</a></li>
+        <li><a href="https://frozenfreefall.github.io/lddev/" rel="noreferrer">项目主页</a></li>
+      </ul>
+    </section>
+
+    <footer>
+      <p>轻量沉浸翻译 · 隐私政策 · 更新于 2026 年 11 月 2 日</p>
+      <a href="#top">返回顶部</a>
+    </footer>
+  </main>
+</body>
+</html>
