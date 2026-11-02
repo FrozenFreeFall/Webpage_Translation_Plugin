@@ -15,7 +15,7 @@ test('unpacked manifest resolves every runtime entry without a build step', asyn
   }
   for (const file of ['pdf.html', manifest.options_page, manifest.action.default_popup]) {
     const html = await readFile(path.join(root, file), 'utf8');
-    const assets = [...html.matchAll(/(?:src|href)="([^"]+)"/g)].map((match) => match[1]);
+    const assets = [...html.matchAll(/<(?:script|link|img)\b[^>]*\b(?:src|href)="([^"]+)"/g)].map((match) => match[1]);
     for (const asset of assets) {
       assert.doesNotMatch(asset, /^(https?:)?\/\//);
       await access(path.join(root, asset));

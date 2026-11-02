@@ -2,6 +2,7 @@
   "manifest_version": 3,
   "name": "轻量沉浸翻译",
   "version": "0.6.0",
+  "homepage_url": "https://frozenfreefall.github.io/lddev/",
   "description": "熊猫一键双语翻译，支持划词与单词词典、YouTube 双语字幕、PDF 双语阅读与对照，可使用微软、谷歌、自建 LibreTranslate 或自定义 AI。",
   "minimum_chrome_version": "125",
   "icons": {

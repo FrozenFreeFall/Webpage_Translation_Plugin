@@ -286,3 +286,9 @@ python tools/package.py
 ```
 
 压缩包仅包含运行文件、使用说明和测试记录，不包含测试代码、浏览器资料、开发依赖或任何真实密钥。浏览器商店上架不属于本地代码交付。
+
+## 作者信息
+
+- 微信：hailong7891
+- 邮箱：[356752238@qq.com](mailto:356752238@qq.com)
+- 网站主页：[https://frozenfreefall.github.io/lddev/](https://frozenfreefall.github.io/lddev/)
