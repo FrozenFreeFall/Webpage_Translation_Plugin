@@ -1,6 +1,18 @@
 (() => {
   'use strict';
   if (globalThis.__IT_CONTENT__ || !/^https?:$/.test(location.protocol) || window.top !== window) return;
+  const isPdfPage = () => {
+    if (document.contentType === 'application/pdf' || /\.pdf$/i.test(location.pathname)) return true;
+    // A native PDF wrapper embeds its own document. An article embedding a
+    // different PDF remains an ordinary webpage with its own translation.
+    return Array.from(document.querySelectorAll('embed[type="application/pdf"],object[type="application/pdf"]')).some(element => {
+      const source = element.getAttribute('src') || element.getAttribute('data');
+      if (!source) return true;
+      try { return new URL(source, location.href).href.split('#')[0] === location.href.split('#')[0]; }
+      catch { return false; }
+    });
+  };
+  let openingPdf = false;
   const OWN = 'data-it-translation';
   const SKIP = 'script,style,noscript,template,pre,code,input,textarea,select,option,button,nav,header,footer,iframe,canvas,svg,math,[contenteditable]:not([contenteditable="false"]),[role="textbox"],[role="navigation"],[data-it-translation],#it-translation-root';
   const BLOCK = new Set(['ADDRESS','ARTICLE','ASIDE','BLOCKQUOTE','BODY','DD','DIV','DL','DT','FIGCAPTION','FIGURE','H1','H2','H3','H4','H5','H6','LI','MAIN','OL','P','SECTION','TABLE','TBODY','TD','TH','THEAD','TR','UL']);
@@ -257,6 +269,7 @@
   function update(text = '') {
     notice = text;
     const titles = { original: '翻译当前网页', loading: '翻译中，点击取消并还原', translated: '显示原文', partial: '显示原文', error: '重新尝试翻译' };
+    if (isPdfPage()) titles.original = titles.error = '翻译当前 PDF';
     button.title = titles[state]; button.setAttribute('aria-label', titles[state]); button.dataset.state = state;
     status.textContent = ({ original: '译', loading: '…', translated: '原', partial: '!', error: '!' })[state];
     message.textContent = text; panel.hidden = !text; retry.hidden = state !== 'partial';
@@ -442,6 +455,12 @@
     if (pickup) return;
     if (ignoreDragClick && event.detail !== 0) { ignoreDragClick = false; return; }
     ignoreDragClick = false; revealPet();
+    if (isPdfPage()) {
+      if (openingPdf) return;
+      openingPdf = true;
+      void send({ type: 'IT_OPEN_PDF_READER' }).then(result => update(result?.ok ? '已在新标签打开 PDF 翻译阅读器。' : friendly(result?.error))).finally(() => { openingPdf = false; });
+      return;
+    }
     if (state === 'loading' || state === 'translated' || state === 'partial') reset();
     else { if (state === 'error') reset(); void safely(start); }
   });
@@ -459,7 +478,7 @@
   }); });
   settings.addEventListener('click', event => { if (!event.isTrusted) return; void safely(async () => { const result = await send({ type: 'IT_OPEN_OPTIONS' }); if (!result?.ok) update(friendly(result?.error)); }); });
   chrome.runtime.onMessage.addListener((payload, _sender, respond) => {
-    if (payload?.type === 'IT_PAGE_STATUS') { respond({ ok: true, state, supported: true }); return false; }
+    if (payload?.type === 'IT_PAGE_STATUS') { respond({ ok: true, state, supported: true, isPdf: isPdfPage() }); return false; }
     if (payload?.type === 'IT_CONFIG_CHANGED') { reset(true); respond?.({ ok: true }); }
     return false;
   });

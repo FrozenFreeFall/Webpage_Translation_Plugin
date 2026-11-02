@@ -1,0 +1,74 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /Outlines 9 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 765  >>
+stream
+BT /F1 20 Tf 54 726 Td (A small guide to reliable PDF reading.) Tj ET
+BT /F1 12 Tf 54 674 Td (This original document explains how careful readers compare) Tj ET
+BT /F1 12 Tf 54 656 Td (a source page with a translation while keeping useful context.) Tj ET
+BT /F1 12 Tf 54 610 Td (A translation starts only after the reader asks for the current) Tj ET
+BT /F1 12 Tf 54 592 Td (page. The chart below is part of the original PDF artwork.) Tj ET
+BT /F2 11 Tf 54 510 Td (function privateExample\(value\) {) Tj ET
+BT /F2 11 Tf 54 494 Td (  return value * 2;) Tj ET
+BT /F2 11 Tf 54 478 Td (}) Tj ET
+q 0.94 0.93 0.99 rg 54 280 500 130 re f
+0.38 0.31 0.75 RG 2 w 84 302 m 84 382 l 518 382 m 84 382 l S
+0.40 0.34 0.82 RG 4 w 84 318 m 190 330 l 296 344 l 402 358 l 518 370 l S Q
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 443  >>
+stream
+BT /F1 20 Tf 54 726 Td (Second page: lifecycle and cancellation.) Tj ET
+BT /F1 12 Tf 54 674 Td (Page two has its own sentences and its own translation state.) Tj ET
+BT /F1 12 Tf 54 656 Td (Changing pages must discard late answers for the previous page.) Tj ET
+BT /F1 12 Tf 54 610 Td (The source PDF remains available when the reading mode changes.) Tj ET
+BT /F1 12 Tf 54 592 Td (Choosing a new file also starts a fresh document session.) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Outlines /First 10 0 R /Last 11 0 R /Count 2 >>
+endobj
+10 0 obj
+<< /Title (Reliable reading) /Parent 9 0 R /Dest [5 0 R /Fit] /Next 11 0 R >>
+endobj
+11 0 obj
+<< /Title (Lifecycle) /Parent 9 0 R /Dest [7 0 R /Fit] /Prev 10 0 R >>
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000015 00000 n 
+0000000080 00000 n 
+0000000143 00000 n 
+0000000213 00000 n 
+0000000281 00000 n 
+0000000417 00000 n 
+0000001234 00000 n 
+0000001370 00000 n 
+0000001865 00000 n 
+0000001938 00000 n 
+0000002032 00000 n 
+trailer
+<< /Size 12 /Root 1 0 R >>
+startxref
+2119
+%%EOF

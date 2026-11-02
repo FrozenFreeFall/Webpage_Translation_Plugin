@@ -9,15 +9,45 @@ function harness(translator) {
   const stored = { settings: { ...config }, revision: 'r1' };
   const events = [];
   const api = {
-    runtime: { id: 'extension-test', getURL: (s) => `chrome-extension://extension-test/${s}`, openOptionsPage: async () => {} },
+    runtime: { id: 'extension-test', getURL: (s) => `chrome-extension://extension-test/${s}`, openOptionsPage: async () => {}, sendMessage: async value => events.push(value) },
     storage: { local: {
       setAccessLevel: async (v) => events.push(v),
       get: async () => ({ ...stored }), set: async (v) => Object.assign(stored, v),
     } },
-    tabs: { query: async () => [{ id: 1 }], sendMessage: async (...args) => events.push(args) },
+    tabs: { query: async () => [{ id: 1 }], sendMessage: async (...args) => events.push(args), create: async value => { events.push(value); return { id: 2, ...value }; } },
   };
   return { app: createBackground?.(api, { translator }), stored, events };
 }
+
+const reader = (tabId = 3, documentId = 'pdf1', suffix = '?file=https%3A%2F%2Fbooks.test%2Fa.pdf') => ({ id: 'extension-test', tab: { id: tabId }, frameId: 0, documentId, url: `chrome-extension://extension-test/pdf.html${suffix}` });
+
+test('PDF reader sessions use saved provider without exposing credentials or broadening settings trust', async () => {
+  const { app } = harness(async (_settings, segments) => ({ translations: segments.map(({ id }) => ({ id, text: 'PDF 译文' })), failures: [] }));
+  assert.equal((await app.handle({ type: 'IT_GET_PUBLIC_CONFIG' }, reader())).ok, true);
+  assert.equal((await app.handle({ type: 'IT_GET_SETTINGS' }, reader())).error.code, 'FORBIDDEN');
+  assert.equal((await app.handle({ type: 'IT_SAVE_SETTINGS', settings: config }, reader())).error.code, 'FORBIDDEN');
+  assert.equal((await app.handle({ type: 'IT_START_SESSION', sessionId: 'pdf-session' }, reader())).ok, true);
+  const request = { type: 'IT_TRANSLATE', sessionId: 'pdf-session', segments: [{ id: 'p1', text: 'PDF paragraph.' }] };
+  assert.equal((await app.handle(request, reader())).translations[0].text, 'PDF 译文');
+  assert.equal((await app.handle(request, reader(3, 'other-document'))).error.code, 'CANCELLED');
+  assert.equal((await app.handle(request, reader(3, 'pdf1', '/evil'))).error.code, 'FORBIDDEN');
+  assert.equal((await app.handle(request, { ...reader(), frameId: 1 })).error.code, 'FORBIDDEN');
+});
+
+test('PDF panda opens its own source in reader and popup can open a local PDF without starting translation', async () => {
+  let calls = 0;
+  const { app, events } = harness(async () => { calls++; return {}; });
+  const source = { ...page(), url: 'https://books.test/download?id=42#page=9' };
+  assert.equal((await app.handle({ type: 'IT_OPEN_PDF_READER', url: 'https://unrelated.test/a.pdf' }, source)).ok, true);
+  const created = events.find(value => value?.url);
+  const url = new URL(created.url);
+  assert.equal(url.pathname, '/pdf.html');
+  assert.equal(url.searchParams.get('file'), 'https://books.test/download?id=42');
+  assert.equal(url.searchParams.get('page'), '9');
+  assert.equal((await app.handle({ type: 'IT_OPEN_PDF_READER', url: 'file:///C:/Books/test.pdf' }, options)).ok, true);
+  assert.equal((await app.handle({ type: 'IT_OPEN_PDF_READER', url: 'javascript:alert(1)' }, options)).ok, false);
+  assert.equal(calls, 0);
+});
 
 test('locks local storage before serving messages and hides secrets from content', async () => {
   assert.equal(typeof createBackground, 'function');
@@ -76,6 +106,7 @@ test('saving settings invalidates pending work, changes revision, broadcasts wit
   const after = await app.handle({ type: 'IT_TRANSLATE', sessionId: 's1', segments: [{ id: 'a', text: 'Hello' }] }, page());
   assert.equal(after.error.code, 'CANCELLED');
   assert.ok(events.some((event) => Array.isArray(event) && event[1].type === 'IT_CONFIG_CHANGED'));
+  assert.ok(events.some((event) => event?.type === 'IT_CONFIG_CHANGED'), 'extension reader pages must also receive the config broadcast');
   assert.equal(JSON.stringify(events).includes('local-secret'), false);
 });
 

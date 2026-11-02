@@ -9,7 +9,11 @@ async function fixture(t, { configured = true, holdTranslation = false, reducedM
   t.after(() => browser.close());
   await page.setViewportSize({ width: 1000, height: 700 });
   await page.emulateMedia({ reducedMotion: reducedMotion ? 'reduce' : 'no-preference' });
-  await page.clock.install();
+  const clockStart = new Date('2026-01-01T00:00:00Z');
+  await page.clock.install({ time: clockStart });
+  // Pause before content attaches so every idle deadline starts at the same
+  // instant. A future anchor avoids racing a Date.now() round trip over CDP.
+  await page.clock.pauseAt(new Date(clockStart.getTime() + 60_000));
   await page.route('http://pet.fixture.test/**', route => route.fulfill({
     contentType: 'text/html; charset=utf-8',
     body: '<!doctype html><html lang="en"><title>Pet behavior fixture</title><body><main><p>A readable article paragraph for translation.</p></main></body></html>',
@@ -34,7 +38,6 @@ async function fixture(t, { configured = true, holdTranslation = false, reducedM
   await page.goto('http://pet.fixture.test/article');
   await page.addScriptTag({ path: path.join(root, 'src/content.js') });
   await page.locator('#it-translation-root .ball').waitFor();
-  await page.clock.pauseAt(await page.evaluate(() => Date.now()));
   return page;
 }
 

@@ -31,6 +31,24 @@ async function fixture(t, html, options = {}) {
 }
 const ball = page => page.getByRole('button', { name: /翻译当前网页|显示原文|翻译中，点击取消并还原|重新尝试翻译/ });
 
+test('PDF panda routes to reader without starting webpage text translation', async t => {
+  const page = await fixture(t, '<embed type="application/pdf"><p>This wrapper text must not be translated.</p>');
+  await page.getByRole('button', { name: '翻译当前 PDF', exact: true }).click();
+  await page.waitForFunction(() => calls.some(call => call.type === 'IT_OPEN_PDF_READER'));
+  const calls = await page.evaluate(() => window.calls);
+  assert.equal(calls.filter(call => call.type === 'IT_OPEN_PDF_READER').length, 1);
+  assert.equal(calls.some(call => ['IT_START_SESSION', 'IT_TRANSLATE'].includes(call.type)), false);
+});
+
+test('an ordinary article containing an embedded PDF retains webpage translation', async t => {
+  const page = await fixture(t, '<main><p>An article explaining the attached reference document.</p><embed type="application/pdf" src="about:blank"></main>');
+  assert.equal(await page.locator('#it-translation-root .ball').getAttribute('aria-label'), '翻译当前网页');
+  await ball(page).click();
+  await page.waitForFunction(() => globalThis.__IT_CONTENT__.state === 'translated');
+  assert.equal(await page.evaluate(() => calls.some(call => call.type === 'IT_OPEN_PDF_READER')), false);
+  assert.equal(await page.evaluate(() => calls.some(call => call.type === 'IT_TRANSLATE')), true);
+});
+
 test('LibreTranslate without an instance address explains setup and never sends page text', async t => {
   const page = await fixture(t, '<p>Current webpage paragraph</p>', { configured: false });
   await page.evaluate(() => { window.config.provider = 'libretranslate'; });

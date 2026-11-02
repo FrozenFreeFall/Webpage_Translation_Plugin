@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS, normalizeSettings, publicConfig, errorResult, TranslationError, validateSegments } from './shared.js';
 import { translateSegments } from './translator.js';
+import { isPdfReaderURL, pdfReaderURL } from './pdf-entry.js';
 
 const cancelled = () => new TranslationError('CANCELLED', '本次翻译已结束，请重新开启。');
 const forbidden = () => new TranslationError('FORBIDDEN', '此页面无权执行该操作。', true);
@@ -31,7 +32,8 @@ export function createBackground(api, { translator = translateSegments } = {}) {
     return sender?.id === api.runtime.id && ['options.html', 'popup.html'].some((file) => sender.url === api.runtime.getURL(file));
   }
   function pageSender(sender) {
-    if (sender?.id !== api.runtime.id || !Number.isInteger(sender?.tab?.id) || sender.frameId !== 0 || !/^https?:\/\//.test(sender.url || '')) throw forbidden();
+    const readable = /^https?:\/\//.test(sender?.url || '') || isPdfReaderURL(sender?.url, api.runtime.getURL('pdf.html'));
+    if (sender?.id !== api.runtime.id || !Number.isInteger(sender?.tab?.id) || sender.frameId !== 0 || !readable) throw forbidden();
     return sender.tab.id;
   }
   function sessionId(message) {
@@ -56,6 +58,14 @@ export function createBackground(api, { translator = translateSegments } = {}) {
           if (!isTrusted(sender)) pageSender(sender);
           await api.runtime.openOptionsPage();
           return { ok: true };
+        case 'IT_OPEN_PDF_READER': {
+          let source;
+          if (isTrusted(sender)) source = message.url || '';
+          else { pageSender(sender); source = sender.url; }
+          const url = pdfReaderURL(api.runtime.getURL('pdf.html'), source);
+          const tab = await api.tabs.create({ url });
+          return { ok: true, tabId: tab.id };
+        }
         case 'IT_GET_SETTINGS':
           if (!isTrusted(sender)) throw forbidden();
           return { ok: true, settings: { ...settings } };
@@ -68,6 +78,9 @@ export function createBackground(api, { translator = translateSegments } = {}) {
           revision = nextRevision;
           cancelAll();
           const tabs = await api.tabs.query({});
+          // tabs.sendMessage targets content scripts; reader extension pages listen
+          // on runtime.onMessage and need their own secret-free broadcast.
+          await Promise.allSettled([api.runtime.sendMessage({ type: 'IT_CONFIG_CHANGED' })]);
           await Promise.allSettled(tabs.filter((tab) => Number.isInteger(tab.id)).map((tab) => api.tabs.sendMessage(tab.id, { type: 'IT_CONFIG_CHANGED' })));
           return { ok: true, config: publicConfig(settings, revision) };
         }
