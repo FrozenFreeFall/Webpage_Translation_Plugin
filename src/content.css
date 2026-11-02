@@ -1,0 +1,2 @@
+/* Host placement fallback. Interactive styles live in the isolated shadow root. */
+#it-translation-root { position: fixed !important; left: var(--it-pet-x, auto) !important; right: var(--it-pet-right, 0) !important; top: var(--it-pet-y, clamp(8px, calc(50% - 58px), calc(100% - 124px))) !important; transition: var(--it-pet-transition, none) !important; z-index: 2147483647 !important; }

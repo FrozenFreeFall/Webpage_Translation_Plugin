@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "轻量沉浸翻译",
+  "version": "0.3.0",
+  "description": "侧边大熊猫一键双语翻译与还原，可拖动左右靠边，支持谷歌、微软、LibreTranslate 自建服务和自定义 AI。",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "background": { "service_worker": "src/background.js", "type": "module" },
+  "action": { "default_title": "轻量沉浸翻译", "default_popup": "popup.html" },
+  "options_page": "options.html",
+  "content_scripts": [{
+    "matches": ["http://*/*", "https://*/*"],
+    "exclude_matches": ["https://chromewebstore.google.com/*", "https://chrome.google.com/webstore/*", "https://microsoftedge.microsoft.com/addons/*"],
+    "js": ["src/content.js"],
+    "css": ["src/content.css"],
+    "run_at": "document_idle",
+    "all_frames": false
+  }],
+  "content_security_policy": { "extension_pages": "script-src 'self'; object-src 'none'" }
+}
