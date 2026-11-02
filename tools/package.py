@@ -11,6 +11,8 @@ FILES = [
     "src/content.js", "src/content.css", "src/options.js", "src/popup.js", "src/ui.css",
     "src/youtube.js",
     "src/pdf-entry.js", "src/pdf-model.js", "src/pdf.js", "src/pdf.css",
+    "assets/icons/icon-16.png", "assets/icons/icon-32.png", "assets/icons/icon-48.png",
+    "assets/icons/icon-128.png", "assets/icons/icon-256.png",
 ]
 
 def main():

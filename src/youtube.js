@@ -131,11 +131,11 @@
     maskNativeCaptions(segments);
     const nativeTop = segments.length ? Math.min(...segments.map(segment => segment.getBoundingClientRect().top)) - bounds.top : bounds.height - 140;
     const controls = player.querySelector('.ytp-chrome-bottom')?.getBoundingClientRect();
-    const bottom = Math.min(bounds.height - 12, controls?.height && controls.top > bounds.top ? controls.top - bounds.top - 12 : bounds.height - 56);
+    const bottom = Math.min(bounds.height - 4, controls?.height && controls.top > bounds.top ? controls.top - bounds.top - 4 : bounds.height - 48);
     bilingual.style.maxHeight = `${Math.max(0, bottom - 8)}px`;
-    // Anchor the whole shared card at the native cue's top, including dragged
-    // captions, and lift it only as needed to clear the player's controls.
-    bilingual.style.top = `${Math.max(8, Math.min(nativeTop, bottom - bilingual.offsetHeight))}px`;
+    // Place the shared card a little below the native cue, including dragged
+    // captions, while retaining a small clear gap above the player's controls.
+    bilingual.style.top = `${Math.max(8, Math.min(nativeTop + 14, bottom - bilingual.offsetHeight))}px`;
   }
   function remember(key, text) {
     cache.delete(key); cache.set(key, text);

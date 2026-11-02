@@ -158,6 +158,49 @@ test('one bilingual card centers both languages together in ordinary and fullscr
   assert.equal(await bilingual(page).evaluate(card => document.fullscreenElement.contains(card.getRootNode().host)), true);
 });
 
+test('the bilingual card sits slightly lower while clearing usable controls in ordinary and fullscreen playback', async t => {
+  const page = await fixture(t);
+  await toggle(page).click();
+  await waitForTranslation(page, '学习一门语言会打开新的大门。');
+  const layouts = [];
+  for (const mode of ['ordinary', 'fullscreen']) {
+    if (mode === 'fullscreen') {
+      await page.locator('.ytp-fullscreen-button').click();
+      await page.waitForFunction(() => document.fullscreenElement?.id === 'movie_player');
+    }
+    for (const anchor of ['near-controls', 'raised-native-cue']) {
+      await page.locator('.ytp-caption-window-container').evaluate((node, bottom) => { node.style.bottom = bottom; }, anchor === 'near-controls' ? '104px' : '240px');
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      layouts.push(await bilingual(page).evaluate((card, context) => {
+        const player = document.querySelector('#movie_player').getBoundingClientRect();
+        const controls = document.querySelector('.ytp-chrome-bottom').getBoundingClientRect();
+        const nativeTop = document.querySelector('.ytp-caption-segment').getBoundingClientRect().top - player.top;
+        const box = card.getBoundingClientRect();
+        // Compare to the previous top anchor and 12px control clearance using
+        // the rendered card height, so text/font metrics cannot fake the move.
+        const previousTop = Math.max(8, Math.min(nativeTop, Math.min(player.height - 12, controls.top - player.top - 12) - box.height));
+        const controlsUsable = ['.ytp-subtitles-button', '.ytp-fullscreen-button'].every(selector => {
+          const button = document.querySelector(selector);
+          const rect = button.getBoundingClientRect();
+          return button.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+        });
+        return { ...context, top: box.top - player.top, previousTop, shift: box.top - player.top - previousTop, controlGap: controls.top - box.bottom, bottomGap: player.bottom - box.bottom, controlsUsable };
+      }, { mode, anchor }));
+    }
+  }
+  for (const layout of layouts) {
+    t.diagnostic(JSON.stringify(layout));
+    const expectedShift = layout.anchor === 'near-controls' ? 8 : 14;
+    assert.ok(Math.abs(layout.shift - expectedShift) <= 1, `${layout.mode} ${layout.anchor}: the card should move down ${expectedShift}px from its previous position (actual ${layout.shift}px)`);
+    assert.ok(layout.controlGap >= 4 && layout.bottomGap >= 4, 'the lower card must leave safe space above the controls and player edge');
+    assert.equal(layout.controlsUsable, true, 'native CC and fullscreen controls must remain clickable');
+  }
+  await page.evaluate(() => document.exitFullscreen());
+  await page.locator('.ytp-caption-window-container').evaluate(node => { node.style.bottom = '104px'; });
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await page.screenshot({ path: path.join(root, 'tests/artifacts/youtube-subtitle-lowered.png') });
+});
+
 test('the unified card keeps the current growing source as literal text and sends no cloned or unrelated content', async t => {
   const page = await fixture(t, { clock: true, holdTranslation: true });
   const prefix = 'A clear beginning';
